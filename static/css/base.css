@@ -1,0 +1,60 @@
+/* 排版 */
+html { font-family: "Segoe UI", "PingFang SC", "Arial", "Helvetica", "sans-serif"; font-size: 12px; line-height: 1.6; background-color: rgb(231,239,244); color: black; text-align: justify; word-wrap: break-word; word-break: break-all; word-break: break-word;}
+body { background-color: rgba(255, 255, 255, .7); }
+h1 { font-size: 3rem; }
+h2 { font-size: 2.5rem; }
+h3 { font-size: 2rem; }
+h4, p, a, li, pre, span, input { font-size: 1.5rem;}
+p { text-indent: 3rem; }
+a { text-decoration: none; color: rgb(0,173,53); }
+a:hover { text-decoration: underline; }
+pre { font-family: Consolas, monospace; background-color: rgba(255, 255, 255, 1); }
+h1, footer { text-align: center; }
+
+/* 布局 */
+body { max-width: 90rem; margin: 0 auto; padding: 1rem;}
+h1, h2, h3 { margin: 1rem 0; }
+h4, p { margin: 0; }
+ul {list-style-type: none; padding: 0;}
+pre { max-width: 88rem; padding: 0 1rem; overflow: overlay; }
+img { max-width: 100%; }
+header, main { max-width: 75rem; padding: 2rem 0; margin: 0 auto; }
+nav { margin-top: 6rem; clear: both; overflow: hidden; border-top: 1px #ddd solid; border-bottom: 1px solid #ddd; }
+section { padding: 2rem 0; overflow: hidden; border-bottom: 1px solid rgba(27,31,35,.2);}
+footer { padding-top: 10rem; }
+header>p { font-size: 1.4rem; float: right; max-width: 80%;}
+nav>a { padding: 1rem; float: left; }
+footer>p { text-indent: 0; }
+
+
+/** ----------------------------------------------- **/
+/** 特殊类 **/
+/** ----------------------------------------------- **/
+
+/* 搜索栏 */
+.search>input { display: block; width: 80%; margin: 0 auto; height: 3rem; border: 1px solid #aaa; box-sizing: border-box; }
+.search>div { text-align: center; margin: 1rem auto; width: 70%; }
+
+/* 标签按钮 */
+.tags>* { display: inline-block; margin: .4rem; padding: 0 .5rem; border:1px solid rgba(27,31,35,.2); border-radius: .25rem; }
+.tags>*:hover { background-image: linear-gradient(-180deg,#2fcb53,#269f42 90%); text-decoration: none; color: #fff; cursor: pointer; }
+
+/* 图片条目 */
+.post_left { float: left; padding-right: 2rem; }
+.post_left>img { width: 7rem; }
+
+/* 图片卡片 */
+.imgItem { text-align: center; display: inline-block; overflow: hidden; margin: 2rem 1rem; padding: 0.5rem; background-color:#fff; border-radius: 0.5rem; }
+.imgItem>img {height: 16rem; }
+
+/* 阅读模式 */
+.read-bg{background-color: #d1d6be; }
+
+@media only screen and (max-width: 768px){
+    .read-bg{ background-color:#e9e6d0; }
+}
+
+/* 中间竖线对齐 */
+.line-align {overflow: hidden; height: 100%;}
+.line-align>h2 {text-align: right; float: left; clear: both; min-width: 19%; }
+.line-align>div {margin: 0 0 0 0.5rem; border-left: .2rem solid #ddd; width: 80%; float: right;}

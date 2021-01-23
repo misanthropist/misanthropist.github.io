@@ -1,0 +1,51 @@
+{
+    // Place your global snippets here. Each snippet is defined under a snippet name and has a scope, prefix, body and 
+    // description. Add comma separated ids of the languages where the snippet is applicable in the scope field. If scope 
+    // is left empty or omitted, the snippet gets applied to all languages. The prefix is what is 
+    // used to trigger the snippet and the body will be expanded and inserted. Possible variables are: 
+    // $1, $2 for tab stops, $0 for the final cursor position, and ${1:label}, ${2:another} for placeholders. 
+    // Placeholders with the same ids are connected.
+    // Example:
+    // "Print to console": {
+    // 	"scope": "javascript,typescript",
+    // 	"prefix": "log",
+    // 	"body": [
+    // 		"console.log('$1');",
+    // 		"$2	"
+    // 	],
+    // 	"description": "Log output to console"
+    // }
+    "emmet a": {
+        "scope": "html",
+        "prefix": "a:blank",
+        "body": [
+            "<a target=\"_blank\" href=\"$1\">$2</a>"
+        ]
+    }
+    , "HTML template": {
+        "prefix": "html",
+        "body": [
+            "<!DOCTYPE html>",
+            "<html lang=\"zh-CN\">",
+            "<head>",
+            "    <meta charset=\"utf-8\">",
+            "    <meta http-equiv=\"X-UA-Compatible\" content=\"IE=edge,chrome=1\">",
+            "    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1, shrink-to-fit=no\">",
+            "    <meta name=\"author\" content=\"doudou\">",
+            "    <meta name=\"description\" content=\"用代码、文字、图像记录新事物、新思想、新生活\">",
+            "    <link rel=\"icon\" href=\"/static/pic/favicon.ico\" type=\"image/x-icon\">",
+            "    <title>${1:Page Title}</title>",
+            "    <link rel=\"stylesheet\" href=\"/static/css/base.css\">",
+            "</head>",
+            "<body>",
+            "    $0",
+            "    <script src=\"/static/js/util.js\"></script>",
+            "    <script src=\"/static/js/func.js\"></script>",
+            "    <script src=\"/static/js/router.js\"></script>",
+            "</body>",
+            "</html>"
+        ],
+        "description": "Simple HTML5 starting point"
+    }
+
+}

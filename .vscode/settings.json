@@ -1,0 +1,14 @@
+{
+    "debug.toolBarLocation": "docked",
+    "terminal.integrated.shell.windows": "C:\\cygwin64\\bin\\bash.exe","terminal.integrated.shellArgs.windows": ["-l"],
+    "terminal.integrated.env.windows": {
+        "chere_invoking": "1"
+    },
+    
+    "editor.wordWrap": "on",
+    "editor.renderControlCharacters": true,
+    "editor.renderWhitespace": "all",
+    "editor.tabSize": 4,
+    "editor.insertSpaces": 4,
+    "python.pythonPath": "D:\\conda\\envs\\ai\\python.exe",
+}

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <title>Test Suite</title>
+    <script>
+        (function() {
+            var queue = [], paused = false, results;
+            this.test = function(name, fn) {
+                queue.push(function() {
+                    results = document.getElementById("results");
+                    results = assert(true, name).appendChild(document.createElement("ul"));
+                    fn();
+                });
+                runTest();
+            };
+            this.pause = function() {
+                paused = true;
+            };
+            this.resume = function() {
+                paused = false;
+                setTimeout(runTest, 1);
+            };
+            function runTest() {
+                if (!paused && queue.length) {
+                    queue.shift()();
+                    if (!paused) {
+                        resume();
+                    }
+                }
+            }
+            this.assert = function assert(value, desc) {
+                var li = document.createElement("li");
+                li.className = value ? "pass" : "fail";
+                li.appendChild(document.createTextNode(desc));
+                results.appendChild(li);
+                if (!value) {
+                    li.parentElement.parentNode.className = "fail";
+                }
+                return li;
+            };
+        })();
+        
+    var elem = document.getElementById("box");
+    var tick = 0;
+    </script>
+    <style>
+        #results li.pass {
+            color: green;
+        }
+        #results li.fail {
+            color: red;
+        }
+    </style>
+</head>
+<body>
+    <ul id="results"></ul>
+    <div id="box" style="position:relative;">闭包</div>
+    <script src="../js/test.js"></script>
+</body>
+</html>
