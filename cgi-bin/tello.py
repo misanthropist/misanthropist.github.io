@@ -25,7 +25,7 @@ class Tello(object):
         self.state_port = 8890
         self.video_port = 11111
         self.raw_pic = "."+os.path.sep+"temp"+os.path.sep+"h264"
-        self.face_location = ()
+        self.face_location = (0,0,0,0)
         self.top = 220
         self.bottom = 330
         self.left= 330
@@ -215,22 +215,22 @@ class Tello(object):
         print(tello.get_pic())
         while True:
             time.sleep(4)
-            top,bottom,left,right = tello.face_location
+            top,bottom,left,right = self.face_location
             print(top,bottom,left,right)
             if bottom-top > tello.landoff_len or top==bottom:
-                print("land")
+                print(self.land())
                 break
             else:
                 if top-tello.top > 10:
-                    print("down")
+                    print(self.move('down'))
                 if tello.top-top >10:
-                    print("up")
+                    print(self.move("up"))
                 if left-tello.left > 10:
-                    print("right")
+                    print(self.move("right"))
                 if tello.left - left > 10:
-                    print("left")
+                    print(self.move("left"))
                 if tello.landoff_len-(bottom-top) > 10:
-                    print("forward")
+                    print(self.move("forward"))
 
 tello = Tello()
 print(tello.start_command())

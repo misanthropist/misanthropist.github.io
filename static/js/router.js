@@ -82,7 +82,7 @@ router.route('/static/html/tello.html', function() {
             func.ajax("POST", "/cgi-bin/tello.py", {"command":elem.id}, function(data) {
                 console.log(data);
                 var log = func.$("#log")[0];
-                log.innerHTML += data+"\n";
+                log.innerHTML += data+"<br>";
                 pic.src="/temp/h264.jpeg?t="+(new Date());
                 // clearTimeout(control_update);
             });
