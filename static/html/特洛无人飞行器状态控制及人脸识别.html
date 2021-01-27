@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <link rel="icon" href="/static/pic/favicon.ico" type="image/x-icon">
+    <title>特洛无人飞行器状态控制及人脸识别</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+</head>
+<body>
+    <h1>特洛无人飞行器状态控制及人脸识别</h1>
+    <p>2020年6月趁着Tello儿童节打折，便以499元购置了一台。参考官方给的SDK手册，以及利用dlib人脸识别库，做到了依据飞行器摄像头所拍摄的人脸状态来控制飞行器的飞行状态。</p>
+    <h2>硬件准备</h2>
+    <div>
+        <section>
+            <div>
+                <p>飞行器参数</p>
+            </div>
+            <div>
+                <ul>
+                    <li>
+                        <p>重量:87克（含桨叶和电池）</p>
+                    </li>
+                    <li>
+                        <p>尺寸:98×92.5×41 mm</p>
+                    </li>
+                    <li>
+                        <p>桨叶:3 英寸</p>
+                    </li>
+                    <li>
+                        <p>内置功能:红外定高，气压计定高，LED指示灯，下视视觉，WiFi连接，高清720P图传</p>
+                    </li>
+                    <li>
+                        <p>接口:Micro USB充电接口</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+        <section>
+            <div>
+                <p>飞行性能</p>
+            </div>
+            <div>
+                <ul>
+                    <li>
+                        <p>最大飞行距离:100米</p>
+                    </li>
+                    <li>
+                        <p>最大飞行速度:8m/s</p>
+                    </li>
+                    <li>
+                        <p>最大飞行时间:13分钟</p>
+                    </li>
+                    <li>
+                        <p>最大飞行高度:30米</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+        <section>
+            <div>
+                <p>电池</p>
+            </div>
+            <div>
+                <ul>
+                    <li>
+                        <p>可拆卸电池:1.1Ah/3.8V</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+        <section>
+            <div>
+                <p>相机</p>
+            </div>
+            <div>
+                <ul>
+                    <li>
+                        <p>照片:500万像素</p>
+                    </li>
+                    <li>
+                        <p>FOV:82.6°</p>
+                    </li>
+                    <li>
+                        <p>视频:HD720P30</p>
+                    </li>
+                    <li>
+                        <p>格式:JPG（照片），MP4（视频）</p>
+                    </li>
+                    <li>
+                        <p>电子防抖:支持</p>
+                    </li>
+                </ul>
+            </div>
+        </section>
+    </div>
+    <h2>Tello SDK</h2>
+    <p>飞行器开机自动组建WiFi热点，IP地址为192.168.10.1，以UDP协议，通过8889端口来发送命令和接受响应，8890端口接收飞行器状态，11111端口接收拍摄的图像。</p>
+    <p>首先通过8889端口发送"command"命令以开启Tello的SDK模式，然后再发送"streamon"命令接收Tello视频流。</p>
+    <p>命令分为三种：控制命令(起飞降落前进后退等)、设置命令(速度设定等)、读取命令(飞行器状态)。如果Tello在15秒内没有收到任何命令输入，它将自动着陆。</p>
+    <h2>人脸识别</h2>
+    <p>主要是借助建立在dlib上的face_recognition库实现人脸的识别，得到在图片上的人脸像素范围。我所用的客户端为小米MAX2上的termux应用，其处理一张960x720大小的图片大概需要4到6秒。</p>
+    <p>从飞行器接收2秒的h264视频文件，然后用ffmpeg以每秒一帧解压为jpeg图片，再调用face_recognition库得到图片中的实时人脸位置，最后与自己设定的标准人脸位置进行对比，根据情况调用特洛SDK相应命令调整飞行器飞行状态。</p>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/func.js"></script>
+    <script src="/static/js/router.js"></script>
+</body>
+</html>
