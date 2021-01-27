@@ -211,22 +211,24 @@ class Tello(object):
 
     def cruise(self):
         print(tello.get_pic())
-        time.sleep(4)
-        top,bottom,left,right = tello.face_location
-        print(top,bottom,left,right)
-        if bottom-top > tello.landoff_len or top==bottom:
-            print("land")
-        else:
-            if top-tello.top > 10:
-                print("down")
-            if tello.top-top >10:
-                print("up")
-            if left-tello.left > 10:
-                print("right")
-            if tello.left - left > 10:
-                print("left")
-            if tello.landoff_len-(bottom-top) > 10:
-                print("forward")
+        while True:
+            time.sleep(4)
+            top,bottom,left,right = tello.face_location
+            print(top,bottom,left,right)
+            if bottom-top > tello.landoff_len or top==bottom:
+                print("land")
+                break
+            else:
+                if top-tello.top > 10:
+                    print("down")
+                if tello.top-top >10:
+                    print("up")
+                if left-tello.left > 10:
+                    print("right")
+                if tello.left - left > 10:
+                    print("left")
+                if tello.landoff_len-(bottom-top) > 10:
+                    print("forward")
 
 tello = Tello()
 print(tello.start_command())

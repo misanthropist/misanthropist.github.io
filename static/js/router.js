@@ -68,11 +68,23 @@ router.route('/static/html/pi_car.html', function() {
 });
 
 router.route('/static/html/tello.html', function() {
-    var commands = func.$(".tags a");
+    var commands = func.$(".tags a"),
+    pic = func.$("#tello_pic")[0],
+    control_update,
+    update_pic = function() {
+        pic.src = "";
+        pic.src="/temp/h264.jpeg?t="+(new Date());
+        control_update=setTimeout(function(){update_pic();},4000);
+    };
     for (var i=0; i<commands.length; i++) (function(elem) {
         elem.addEventListener("click", function(e) {
+            // update_pic();
             func.ajax("POST", "/cgi-bin/tello.py", {"command":elem.id}, function(data) {
                 console.log(data);
+                var log = func.$("#log")[0];
+                log.innerHTML += data+"\n";
+                pic.src="/temp/h264.jpeg?t="+(new Date());
+                // clearTimeout(control_update);
             });
         });
     })(commands[i]);
