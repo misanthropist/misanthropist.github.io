@@ -241,7 +241,7 @@ if command == "land":
     print(tello.land())
 elif command == "pic":
     print(tello.get_pic())
-    time.sleep(6)
+    time.sleep(4)
     top,bottom,left,right = tello.face_location
     print(top,bottom,left,right)
 elif command == "state":
