@@ -245,8 +245,30 @@ class Servo(object):
             self.angles["arm1"] = 0
         rotate(self.arm1, self.angles["arm1"])
         self.set_angles()
+    
+    def left_rotate(self):
+        self.angles = self.get_angles()
+        self.angles["arm2"] = self.angles["arm2"]+10
+        if self.angles["arm2"] >= 180:
+            self.angles["arm2"] = 0
+        rotate(self.arm1, self.angles["arm2"])
+        self.set_angles()
+        
+    def right_rotate(self):
+        self.angles = self.get_angles()
+        self.angles["arm3"] = self.angles["arm3"]+10
+        if self.angles["arm3"] >= 180:
+            self.angles["arm3"] = 0
+        rotate(self.arm1, self.angles["arm3"])
+        self.set_angles()
 
-
+    def claw_rotate(self):
+        self.angles = self.get_angles()
+        self.angles["arm4"] = self.angles["arm4"]+10
+        if self.angles["arm4"] >= 180:
+            self.angles["arm4"] = 0
+        rotate(self.arm1, self.angles["arm4"])
+        self.set_angles()
 
 
 def cruise(state, distance, forword, backword, left, right, stop):
@@ -329,6 +351,12 @@ elif command == "cruise":
     cruise(infrared.state, ultrasonic.distance, movement.forword, movement.backword, movement.left, movement.right, movement.stop)
 elif command == "servo3":
     servo.base_rotate()
+elif command == "servo4":
+    servo.left_rotate()
+elif command == "servo5":
+    servo.right_rotate()
+elif command == "servo6":
+    servo.claw_rotate()
 else:
     print("There is no such order")
 
