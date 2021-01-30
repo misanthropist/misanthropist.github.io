@@ -265,8 +265,8 @@ class Servo(object):
     def claw_rotate(self):
         self.angles = self.get_angles()
         self.angles["arm4"] = self.angles["arm4"]+10
-        if self.angles["arm4"] >= 70:
-            self.angles["arm4"] = 10
+        if self.angles["arm4"] >= 60:
+            self.angles["arm4"] = 0
         rotate(self.arm4, self.angles["arm4"])
         self.set_angles()
 
