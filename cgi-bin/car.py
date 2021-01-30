@@ -239,7 +239,6 @@ class Servo(object):
         self.set_angles()
     
     def base_rotate(self):
-        self.set_angles()
         self.angles = self.get_angles()
         self.angles["arm1"] = self.angles["arm1"]+10
         if self.angles["arm1"] >= 180:
