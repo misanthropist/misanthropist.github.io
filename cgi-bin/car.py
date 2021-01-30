@@ -257,7 +257,7 @@ def cruise(state, distance, forword, backword, left, right, stop):
         if state() == "11":
             forword()
         if state() == "01":
-            right()=
+            right()
             time.sleep(0.3)
         if state() == "10":
             left()
