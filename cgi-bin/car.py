@@ -249,8 +249,8 @@ class Servo(object):
     def left_rotate(self):
         self.angles = self.get_angles()
         self.angles["arm2"] = self.angles["arm2"]+10
-        if self.angles["arm2"] >= 130:
-            self.angles["arm2"] = 30
+        if self.angles["arm2"] >= 140:
+            self.angles["arm2"] = 40
         rotate(self.arm2, self.angles["arm2"])
         self.set_angles()
         
