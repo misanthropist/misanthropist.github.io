@@ -191,10 +191,18 @@ class Servo(object):
         self.horizontal = 1
         self.vertical = 2
         self.ultrasonic = 0
+        self.arm1 = 3
+        self.arm2 = 4
+        self.arm3 = 5
+        self.arm4 = 6
         self.angles = {
             "horizontal": 60,
             "vertical": 0,
-            "ultrasonic": 72
+            "ultrasonic": 72,
+            "arm1": 0,
+            "arm2": 0,
+            "arm3": 0,
+            "arm4": 0
         }
 
     def get_angles(self):
@@ -229,6 +237,18 @@ class Servo(object):
             self.angles["vertical"] = 0
         rotate(self.vertical, self.angles["vertical"])
         self.set_angles()
+    
+    def base_rotate(self):
+        self.set_angles()
+        self.angles = self.get_angles()
+        self.angles["arm1"] = self.angles["arm1"]+10
+        if self.angles["arm1"] >= 180:
+            self.angles["arm1"] = 0
+        rotate(self.arm1, self.angles["arm1"])
+        self.set_angles()
+
+
+
 
 def cruise(state, distance, forword, backword, left, right, stop):
     while True:
@@ -308,6 +328,8 @@ elif command == "servo2":
     servo.vertical_rotate()
 elif command == "cruise":
     cruise(infrared.state, ultrasonic.distance, movement.forword, movement.backword, movement.left, movement.right, movement.stop)
+elif command == "servo3":
+    servo.base_rotate()
 else:
     print("There is no such order")
 
