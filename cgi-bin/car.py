@@ -44,7 +44,7 @@ def rotate(servonum, angle=90):
     pwm.setPWMFreq(50)
     write(pwm, servonum, angle)
     time.sleep(1)
-    PWM(0x40, debug=True)
+    # PWM(0x40, debug=True)
 
 def setup():
     GPIO.setmode(GPIO.BCM)

@@ -57,6 +57,16 @@ router.route('/static/html/'+encodeURI('自拍')+'.html', function() {
     func.lazy_load_pics();
 });
 
+router.route('/static/html/'+encodeURI('树莓派小车调试运行记录')+'.html', function() {
+    let className = 'math-tex';
+    MathJax = {
+        options: {
+            processHtmlClass: className,
+            ignoreHtmlClass: '.*'
+        }
+    };
+});
+
 router.route('/static/html/pi_car.html', function() {
     var commands = func.$(".tags a");
     for (var i = 0; i < commands.length; i++) (function(elem){
