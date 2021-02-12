@@ -9,7 +9,6 @@
     <link rel="icon" href="/static/pic/favicon.ico" type="image/x-icon">
     <title>树莓派小车调试运行记录</title>
     <link rel="stylesheet" href="/static/css/base.css">
-    <link rel="stylesheet" href="/static/css/prism.css">
 </head>
 <body>
     <h1>树莓派小车调试运行记录</h1>
@@ -25,7 +24,7 @@
     <p>选择的操作系统是Raspbian，是树莓派推荐的Linux发行版，它是在Debian发行版的基础上添加了一些软件并进行了配置。</p>
     <h4>1.2.1配置WiFi、SSH和Git</h4>
     <p>选择一个SD卡写入工具，将Raspbian系统镜像img文件写入SD卡。Raspbian系统允许在开机前对WiFi网络和ssh进行配置，所以先在SD卡/boot目录下新建wpa_supplicant.conf，然后填入如下代码：</p>
-    <pre><code class="language-xml line-numbers">country=CN
+    <pre class="code"><code class="language-xml line-numbers">country=CN
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
 
@@ -37,21 +36,21 @@ priority=1
 }
 </code></pre>
     <p>key_mgmt代表WiFi使用的加密方式，priority代表优先级，数值越大优先级越大。再在/boot目录下新建ssh空白文件，这样开机自动启动sshd服务。将SD卡插入树莓派并启动电源，根据路由器查询树莓派IP地址，输入ssh指令连接树莓派。</p>
-    <pre><code class="language-bash line-numbers">ssh-keygen #本地主机生成公私钥
+    <pre class="code"><code class="language-bash line-numbers">ssh-keygen #本地主机生成公私钥
 ssh-copy-id user@host #将公钥传送到树莓派host上
 ssh user@host #以ssh命令行方式登陆树莓派</code></pre>
     <p>利用hostapd和dnsmasq创建AP热点，192.168.1.1是给raspberry做的路由器分配的网关ip。</p>
-<pre><code class="language-bash line-numbers">sudo apt-install dnsmasq hostapd
+<pre class="code"><code class="language-bash line-numbers">sudo apt-install dnsmasq hostapd
 vi /etc/network/interfaces
 vi /etc/hostapd/hostapd.conf
 vi /etc/dnsmasq.conf</code></pre>
     <p>interfaces输入如下内容：</p>
-    <pre><code class="language-bash line-numbers">allow-hotplug wlan0
+    <pre class="code"><code class="language-bash line-numbers">allow-hotplug wlan0
 iface wlan0 inet static
 address 192.168.1.1
 netmask 255.255.255.0</code></pre>
     <p>hostapd.conf输入如下内容：</p>
-    <pre><code class="language-bash line-numbers">interface=wlan0
+    <pre class="code"><code class="language-bash line-numbers">interface=wlan0
 driver=nl80211
 ssid=yourAPname
 hw_mode=g
@@ -67,7 +66,7 @@ wpa_key_mgmt=WPA-PSK
 wpa_passphrase=yourpassword
 rsn_pairwise=CCM</code></pre>
     <p>修改/etc/default/hostapd，添加DAEMON_CONF="/etc/hostapd/hostapd.conf"。dnsmasq.conf输入如下内容：</p>
-    <pre><code class="language-bash line-numbers">interface=wlan0 
+    <pre class="code"><code class="language-bash line-numbers">interface=wlan0 
 listen-address=yourip
 bind-interfaces 
 server=8.8.8.8
@@ -75,7 +74,7 @@ domain-needed
 bogus-priv
 dhcp-range=192.168.1.100,192.168.1.200,24h</code></pre>
     <p>安装git，创建空仓库，以便于本地向树莓派主机提交代码。</p>
-    <pre><code class="language-bash line-numbers">apt-get install git
+    <pre class="code"><code class="language-bash line-numbers">apt-get install git
 git init --bare gitrepo</code></pre>
     <h4>1.2.2网页显示树莓派运行状态</h4>
     <p>根据网友的Pi Dashboard项目修改而成，删减了大部分功能，保留了CPU、内存、磁盘运行状态。</p>
@@ -87,14 +86,14 @@ git init --bare gitrepo</code></pre>
     <img src="/static/pic/pi/pwm.png" alt="PWM">
     <p>上图Tpwm就是一个周期时长，Ton是高电平时长，D为占空比。</p>
     <p>设定蜂鸣器PWM的占空比为50%，用PWM频率来模拟声音的频率，频率持续时间模拟声音的节拍。</p>
-    <pre><code class="language-python line-numbers">buzz = GPIO.PWM(channel, 31)
+    <pre class="code"><code class="language-python line-numbers">buzz = GPIO.PWM(channel, 31)
 buzz.start(50)
 def sing(freq, dur):
     buzz.ChangeFrequency(freq)
     time.sleep(dur)</code></pre>
     <h3>2.2 乐理知识</h3>
     <p>一首乐曲有若干音符组成，每个音符由音调和演奏时间组成。不同的音调在物理上就对应不同频率的音波。所以我们只要控制输出的频率和时长就能输出一首音乐了。下面是不同音符对应的不同频率、音符-钢琴键盘对照表、音符-简谱对照表、上海滩的简谱。</p>
-    <pre><code class="language-python line-numbers">note2freq = {
+    <pre class="code"><code class="language-python line-numbers">note2freq = {
     "NOTE_B0" = 31, "NOTE_C1" = 33, "NOTE_CS1" = 35, "NOTE_D1" = 37, "NOTE_DS1" = 39, "NOTE_E1" = 41, "NOTE_F1" = 44, "NOTE_FS1" = 46, "NOTE_G1" = 49, "NOTE_GS1" = 52, "NOTE_A1" = 55, "NOTE_AS1" = 58, "NOTE_B1" = 62, "NOTE_C2" = 65, "NOTE_CS2" = 69, "NOTE_D2" = 73, "NOTE_DS2" = 78, "NOTE_E2" = 82, "NOTE_F2" = 87, "NOTE_FS2" = 93, "NOTE_G2" = 98, "NOTE_GS2" = 104, "NOTE_A2" = 110, "NOTE_AS2" = 117, "NOTE_B2" = 123, "NOTE_C3" = 131, "NOTE_CS3" = 139, "NOTE_D3" = 147, "NOTE_DS3" = 156, "NOTE_E3" = 165, "NOTE_F3" = 175, "NOTE_FS3" = 185, "NOTE_G3" = 196, "NOTE_GS3" = 208, "NOTE_A3" = 220, "NOTE_AS3" = 233, "NOTE_B3" = 247, "NOTE_C4" = 262, "NOTE_CS4" = 277, "NOTE_D4" = 294, "NOTE_DS4" = 311, "NOTE_E4" = 330, "NOTE_F4" = 349, "NOTE_FS4" = 370, "NOTE_G4" = 392, "NOTE_GS4" = 415, "NOTE_A4" = 440, "NOTE_AS4" = 466, "NOTE_B4" = 494, "NOTE_C5" = 523, "NOTE_CS5" = 554, "NOTE_D5" = 587, "NOTE_DS5"  622, "NOTE_E5" = 659, "NOTE_F5" = 698, "NOTE_FS5" = 740, "NOTE_G5" = 784, "NOTE_GS5" = 831, "NOTE_A5" = 880, "NOTE_AS5" = 932, "NOTE_B5" = 988, "NOTE_C6" = 1047, "NOTE_CS6" = 1109, "NOTE_D6" = 1175, "NOTE_DS6" = 1245, "NOTE_E6" = 1319, "NOTE_F6" = 1397, "NOTE_FS6" = 1480, "NOTE_G6" = 1568, "NOTE_GS6" =1661, "NOTE_A6" = 1760, "NOTE_AS6" = 1865, "NOTE_B6" = 1976, "NOTE_C7" = 2093, "NOTE_CS7" = 2217, "NOTE_D7" = 2349, "NOTE_DS7" = 2489, "NOTE_E7" = 2637, "NOTE_F7" = 2794, "NOTE_FS7" = 2960, "NOTE_G7" = 3136, "NOTE_GS7" = 3322, "NOTE_A7" = 3520, "NOTE_AS7" = 3729, "NOTE_B7" = 3951, "NOTE_C8" = 4186, "NOTE_CS8" = 4435, "NOTE_D8" = 4699, "NOTE_DS8" = 4978
 }
     </code></pre>
@@ -135,10 +134,8 @@ def sing(freq, dur):
     <h2>7 机械臂模块</h2>
     <p>选用三自由度的木板机械臂，舵机力矩1.5kg/cm。</p>
 
-    <script src="/static/js/prism.js"></script>
     <script src="/static/js/util.js"></script>
     <script src="/static/js/func.js"></script>
     <script src="/static/js/router.js"></script>
-    <script id="MathJax-script" src="/static/js/tex-mml-svg.js"></script>
 </body>
 </html>

@@ -130,6 +130,7 @@ util.wrap({
         , cursite = ""
         , open_search = function(s, value) {
             var url = s.replace("%s", value);
+            localStorage.setItem("url"+new Date().getTime(), url);
             window.open(url);
         };
 
@@ -147,8 +148,8 @@ util.wrap({
             }
         });
 
-        if (localStorage.getItem("cursite") === "undefined") {
-            localStorage.setItem("cursite", "http://localhost:2019/search?content=wikipedia_zh_all_novid_2018-07&pattern=%s"); 
+        if (!localStorage.getItem("cursite")) {
+            localStorage.setItem("cursite", "https://www.google.com/search?q=%s"); 
         } 
     }
 });
