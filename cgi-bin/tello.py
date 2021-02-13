@@ -12,7 +12,6 @@ cgitb.enable()
 print("Content-type:text/html\n")
 form = cgi.FieldStorage()
 command = form.getvalue("command")
-start_time = time.time()
 
 class Tello(object):
     def __init__(self):
@@ -231,42 +230,83 @@ class Tello(object):
                     print(self.move("left"))
                 if tello.landoff_len-(bottom-top) > 10:
                     print(self.move("forward"))
+    
+    def record(self, command):
+        with open('tello_commands', 'a') as f:
+            f.write(command+',')
+
+    def recall(self):
+        with open('tello_commands', 'r') as f:
+            commands = f.read().split(',')
+        return commands
+
+    def clear(self):
+        with open('commands', 'w') as f:
+            f.write('')
 
 tello = Tello()
 print(tello.start_command())
 
-if command == "takeoff":
-    print(tello.takeoff())
-if command == "land":
-    print(tello.land())
-elif command == "pic":
-    print(tello.get_pic())
-    time.sleep(6)
-    top,bottom,left,right = tello.face_location
-    print(top,bottom,left,right)
-elif command == "state":
-    tello.get_state()
-    time.sleep(1)
-    print(tello.state)
-elif command == "flip":
-    print(tello.flip())
-elif command == 'forward':
-    print(tello.move('forward'))
-elif command == 'back':
-    print(tello.move('back'))
-elif command == 'left':
-    print(tello.move('left'))
-elif command == 'right':
-    print(tello.move('right'))
-elif command == 'rotate':
-    print(tello.rotate())
-elif command == "down":
-    print(tello.move('down'))
-elif command == "up":
-    print(tello.move("up"))
-elif command == "go":
-    print(tello.go(20,20,20,10))
-elif command == 'cruise':
-    tello.cruise()
-
-print("{}, {}".format(command, time.time()-start_time))
+def run_command(command, record=True):
+    start_time = time.time()
+    if command == "takeoff":
+        print(tello.takeoff())
+    if command == "land":
+        print(tello.land())
+        if record:
+            tello.record(command)
+    elif command == "pic":
+        print(tello.get_pic())
+        time.sleep(6)
+        top,bottom,left,right = tello.face_location
+        print(top,bottom,left,right)
+    elif command == "state":
+        tello.get_state()
+        time.sleep(1)
+        print(tello.state)
+    elif command == "flip":
+        print(tello.flip())
+    elif command == 'forward':
+        print(tello.move('forward'))
+        if record:
+            tello.record(command)
+    elif command == 'back':
+        print(tello.move('back'))
+        if record:
+            tello.record(command)
+    elif command == 'left':
+        print(tello.move('left'))
+        if record:
+            tello.record(command)
+    elif command == 'right':
+        print(tello.move('right'))
+        if record:
+            tello.record(command)
+    elif command == 'rotate':
+        print(tello.rotate())
+        if record:
+            tello.record(command)
+    elif command == "down":
+        print(tello.move('down'))
+        if record:
+            tello.record(command)
+    elif command == "up":
+        print(tello.move("up"))
+        if record:
+            tello.record(command)
+    elif command == "go":
+        print(tello.go(20,20,20,10))
+        if record:
+            tello.record(command)
+    elif command == 'cruise':
+        tello.cruise()
+    elif command == 'recall':
+        commands = tello.recall()
+        for command in commands:
+            run_command(command, False)
+    elif command == "clear":
+        tello.clear()
+    else:
+        print("There is no such order")
+    
+    print("{}, {}".format(command, time.time()-start_time))
