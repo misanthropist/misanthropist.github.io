@@ -382,7 +382,7 @@ def run_command(command):
         servo.claw_rotate()
     elif command == "recall":
         commands = cruise.recall()
-        for command in commands():
+        for command in commands:
             run_command(command)
     elif command == "clear":
         cruise.clear()
