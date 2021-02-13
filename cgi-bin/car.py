@@ -273,22 +273,23 @@ class Cruise(object):
         pass
 
     def auto(self, state, distance, forword, backword, left, right, stop):
-        if state() == "00":
-            backword()
-        if state() == "11":
-            forword()
-        if state() == "01":
-            right()
-            time.sleep(0.3)
-        if state() == "10":
-            left()
-            time.sleep(0.3)
-        if distance() < 40:
-            right()
-            time.sleep(1.5)
-        if distance() < 10:
-            stop()
-            break
+        while True:
+            if state() == "00":
+                backword()
+            if state() == "11":
+                forword()
+            if state() == "01":
+                right()
+                time.sleep(0.3)
+            if state() == "10":
+                left()
+                time.sleep(0.3)
+            if distance() < 40:
+                right()
+                time.sleep(1.5)
+            if distance() < 10:
+                stop()
+                break
     
     def record(self, command):
         with open('commands', 'a') as f:
