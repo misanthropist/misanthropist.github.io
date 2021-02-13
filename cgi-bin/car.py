@@ -301,8 +301,8 @@ class Cruise(object):
         return commands
     
     def clear(self):
-        with open('commands', 'r+') as f:
-            f.write(',')
+        with open('commands', 'w') as f:
+            f.write('')
 
 
 setup()
