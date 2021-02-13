@@ -316,28 +316,33 @@ servo = Servo()
 cruise = Cruise()
 
 
-def run_command(command):
+def run_command(command, record=True):
     start = time.time()
     if command == "forword":
         movement.forword()
         time.sleep(3)
-        cruise.record(command)
+        if record:
+            cruise.record(command)
     elif command == "backword":
         movement.backword()
         time.sleep(3)
-        cruise.record(command)
+        if record:
+            cruise.record(command)
     elif command == "left":
         movement.left()
         time.sleep(0.1)
-        cruise.record(command)
+        if record:
+            cruise.record(command)
     elif command == "right":
         movement.right()
         time.sleep(0.1)
-        cruise.record(command)
+        if record:
+            cruise.record(command)
     elif command == "stop":
         movement.stop()
-        movement.destory()
-        cruise.record(command)
+        # movement.destory()
+        if record:
+            cruise.record(command)
     elif command == "sing":
         buzzer.sing()
         buzzer.destory()
@@ -383,7 +388,7 @@ def run_command(command):
     elif command == "recall":
         commands = cruise.recall()
         for command in commands:
-            run_command(command)
+            run_command(command, False)
     elif command == "clear":
         cruise.clear()
     else:
