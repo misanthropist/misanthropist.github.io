@@ -331,8 +331,8 @@ def run_command(command):
         cruise.record(command)
     elif command == "right":
         movement.right()
-        time.sleep(0.1
-        cruise.record(command))
+        time.sleep(0.1)
+        cruise.record(command)
     elif command == "stop":
         movement.stop()
         movement.destory()
