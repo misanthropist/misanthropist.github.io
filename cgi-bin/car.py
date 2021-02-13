@@ -302,7 +302,7 @@ class Cruise(object):
     
     def clear(self):
         with open('commands', 'r+') as f:
-            f.write('')
+            f.write(',')
 
 
 setup()
