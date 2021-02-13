@@ -78,7 +78,6 @@ class Buzzer(object):
             time.sleep(self.beat[i]*0.5)
     def destory(self):
         self.Buzz.stop()
-        GPIO.cleanup()
 
 class Movement(object):
     def __init__(self):
@@ -135,7 +134,6 @@ class Movement(object):
     def destory(self):
         self.L_Motor.stop()
         self.R_Motor.stop()
-        GPIO.cleanup()
 
 class Infrared(object):
     def __init__(self):
@@ -270,9 +268,11 @@ class Servo(object):
         rotate(self.arm4, self.angles["arm4"])
         self.set_angles()
 
+class Cruise(object):
+    def __init__(self):
+        pass
 
-def cruise(state, distance, forword, backword, left, right, stop):
-    while True:
+    def auto(self, state, distance, forword, backword, left, right, stop):
         if state() == "00":
             backword()
         if state() == "11":
@@ -289,6 +289,20 @@ def cruise(state, distance, forword, backword, left, right, stop):
         if distance() < 10:
             stop()
             break
+    
+    def record(self, command):
+        with open('commands', 'a') as f:
+            f.write(command+',')
+    
+    def recall(self):
+        with open('commands', 'r') as f:
+            commands = f.read().split(',')
+        return commands
+    
+    def clear(self):
+        with open('commands', 'r+') as f:
+            f.write('')
+
 
 setup()
 
@@ -298,67 +312,84 @@ infrared = Infrared()
 ultrasonic = Ultrasonic()
 webcam = Webcam()
 servo = Servo()
+cruise = Cruise()
 
-start = time.time()
-if command == "forword":
-    movement.forword()
-    time.sleep(3)
-elif command == "backword":
-    movement.backword()
-    time.sleep(3)
-elif command == "left":
-    movement.left()
-    time.sleep(0.1)
-elif command == "right":
-    movement.right()
-    time.sleep(0.1)
-elif command == "stop":
-    movement.stop()
-    movement.destory()
-elif command == "sing":
-    buzzer.sing()
-    buzzer.destory()
-elif command == "infrared":
-    n = 30
-    while n:
-        state = infrared.state()
-        print(state)
-        time.sleep(0.1)
-        n = n - 1
-elif command == "ultrasonic":
-    n = 30
-    while n:
-        distance = ultrasonic.distance()
-        print(distance)
-        time.sleep(0.1)
-        n = n - 1
-elif command == "webcam_on":
-    webcam.webcam_on()
-elif command == "webcam_off":
-    webcam.webcam_off()
-elif command == "restore":
-    servo.set_angles()
-    servo.ultrasonic_rotate()
-    servo.horizontal_rotate()
-    servo.vertical_rotate()
-elif command == "servo0":
-    servo.ultrasonic_rotate()
-elif command == "servo1":
-    servo.horizontal_rotate()
-elif command == "servo2":
-    servo.vertical_rotate()
-elif command == "cruise":
-    cruise(infrared.state, ultrasonic.distance, movement.forword, movement.backword, movement.left, movement.right, movement.stop)
-elif command == "servo3":
-    servo.base_rotate()
-elif command == "servo4":
-    servo.left_rotate()
-elif command == "servo5":
-    servo.right_rotate()
-elif command == "servo6":
-    servo.claw_rotate()
-else:
-    print("There is no such order")
 
+def run_command(command):
+    start = time.time()
+    if command == "forword":
+        movement.forword()
+        time.sleep(3)
+        cruise.record(command)
+    elif command == "backword":
+        movement.backword()
+        time.sleep(3)
+        cruise.record(command)
+    elif command == "left":
+        movement.left()
+        time.sleep(0.1)
+        cruise.record(command)
+    elif command == "right":
+        movement.right()
+        time.sleep(0.1
+        cruise.record(command))
+    elif command == "stop":
+        movement.stop()
+        movement.destory()
+        cruise.record(command)
+    elif command == "sing":
+        buzzer.sing()
+        buzzer.destory()
+    elif command == "infrared":
+        n = 30
+        while n:
+            state = infrared.state()
+            print(state)
+            time.sleep(0.1)
+            n = n - 1
+    elif command == "ultrasonic":
+        n = 30
+        while n:
+            distance = ultrasonic.distance()
+            print(distance)
+            time.sleep(0.1)
+            n = n - 1
+    elif command == "webcam_on":
+        webcam.webcam_on()
+    elif command == "webcam_off":
+        webcam.webcam_off()
+    elif command == "restore":
+        servo.set_angles()
+        servo.ultrasonic_rotate()
+        servo.horizontal_rotate()
+        servo.vertical_rotate()
+    elif command == "servo0":
+        servo.ultrasonic_rotate()
+    elif command == "servo1":
+        servo.horizontal_rotate()
+    elif command == "servo2":
+        servo.vertical_rotate()
+    elif command == "cruise":
+        cruise.auto(infrared.state, ultrasonic.distance, movement.forword, movement.backword, movement.left, movement.right, movement.stop)
+    elif command == "servo3":
+        servo.base_rotate()
+    elif command == "servo4":
+        servo.left_rotate()
+    elif command == "servo5":
+        servo.right_rotate()
+    elif command == "servo6":
+        servo.claw_rotate()
+    elif command == "recall":
+        commands = cruise.recall()
+        for command in commands():
+            run_command(command)
+    elif command == "clear":
+        cruise.clear()
+    else:
+        print("There is no such order")
+
+    print("{}, {}".format(command, time.time()-start))
+
+
+run_command(command)
 GPIO.cleanup()
-print("{}, {}".format(command, time.time()-start))

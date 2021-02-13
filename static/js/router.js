@@ -72,7 +72,11 @@ router.route('/static/html/pi_car.html', function() {
     for (var i = 0; i < commands.length; i++) (function(elem){
         commands[i].addEventListener("click", function(e) {
             console.log(elem.id);
-            func.ajax("POST", "/cgi-bin/car.py", {"command":elem.id}, function(data){console.log(data);});
+            func.ajax("POST", "/cgi-bin/car.py", {"command":elem.id}, function(data){
+                console.log(data);
+                var log = func.$("#log")[0];
+                log.innerHTML += data+"<br>";
+            });
         })
     })(commands[i]);
 });
