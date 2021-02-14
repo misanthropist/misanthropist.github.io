@@ -124,33 +124,159 @@ util.wrap({
     }
     /* 选择搜索引擎 */
     , select_search: function() {
-        var search_as = func.$(".search>.tags>a")[0]
+        var search_button = func.$(".search>.tags>a")[0]
         , search_input = func.$(".search>input")[0]
-        , site
-        , cursite = ""
         , open_search = function(s, value) {
             var url = s.replace("%s", value);
             localStorage.setItem("url"+new Date().getTime(), url);
             window.open(url);
         };
 
-        search_as.addEventListener("click", function(e) {
-            site = e.target;
-            localStorage.setItem("cursite", site.dataset.src);
-            if (site.dataset.src) {
-                    
-                open_search(site.dataset.src, search_input.value);
+        search_button.addEventListener("click", function(e) {
+            var site = search_input.value.split(":")[0],
+                value = search_input.value.split(":")[1];
+            if (site == 'g') {
+                open_search(localStorage.getItem("google"), value);
+            } else if (site == 'ce') {
+                func.dbObject.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'}, function() {
+                    func.dbObject.select(value)
+                });
             }
         });
         search_input.addEventListener("keyup", function(e) {
-            if (e.keyCode == 13) {
-                open_search(localStorage.getItem("cursite"), search_input.value);
+            var site = search_input.value.split(":")[0],
+                value = search_input.value.split(":")[1];
+            if (e.keyCode == 13 && site == 'g') {
+                open_search(localStorage.getItem("google"), value);
+            } else if (e.keyCode == 13 && site == 'ce') {
+                func.dbObject.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'}, function() {
+                    func.dbObject.select(value);
+                });;
             }
         });
 
-        if (!localStorage.getItem("cursite")) {
-            localStorage.setItem("cursite", "https://www.google.com/search?q=%s"); 
+        if (!localStorage.getItem("google")) {
+            localStorage.setItem("google", "https://www.google.com/search?q=%s");
         } 
+    }
+    /* IndexDB接口 */
+    , dbObject: {
+        result: {}
+        , create_ce: function(url) {
+            that = this;
+            this.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'});
+            var data = '';
+            func.ajax('get', url, function(data){
+                data = data.split('\r\n').slice(31, -1);
+                var transaction = that.db.transaction('test', "readwrite");
+                var store = transaction.objectStore('test');
+                var request;
+                data.forEach(function(value, key, item) {
+                    var key=value.split('/')[0].split(' ')[1];
+                    request = store.put(value,key);
+                });
+                request.onsuccess = function(){
+                    console.log("put success");
+                };
+                request.onerror = function(event){
+                    console.log(event);
+                }
+            });
+        }
+        , init: function(args, fn) {
+            var that = this;
+            this.db_name = args.db_name;
+            this.db_version = args.db_version;
+            this.db_store_name = args.db_store_name;
+            if (!window.indexedDB) {
+                window.alert("Not Support");
+            }
+            var request = indexedDB.open(this.db_name, this.db_version);
+            request.onerror = function(event) {
+                window.alert(event.target.errorCode);
+            };
+            request.onupgradeneeded = function(e) {
+                that.db = e.target.result;
+                that.db.createObjectStore(that.db_store_name);
+                console.log("create success");
+            };
+            request.onsuccess = function(e) {
+                that.db = e.target.result;
+                console.log("connect success");
+                fn();
+            };
+        }
+        , add: function(key, args) {
+            var transaction = this.db.transaction([this.db_store_name], "readwrite");
+            var store = transaction.objectStore(this.db_store_name);
+            var request = store.add(args, key);
+            request.onsuccess = function(){
+                console.log("put success");
+            };
+            request.onerror = function(event){
+                console.log(event);
+            }
+        }
+        , put: function(key,args) {
+            var transaction = this.db.transaction(this.db_store_name, "readwrite");
+            var store = transaction.objectStore(this.db_store_name);
+            var request = store.put(args,key);
+            request.onsuccess = function(){
+                console.log("put success");
+            };
+            request.onerror = function(event){
+                console.log(event);
+            }
+        }
+        , delete: function() {
+            request = this.db.transaction(this.db_store_name, "readwrite").objectStore(this.db_store_name).delete(id);
+            request.onsuccess = function() {
+                console.log('delete success');
+            }
+        }
+        , select: function(key) {
+            var that = this;
+            var transaction = this.db.transaction(this.db_store_name,"readwrite");
+            var store = transaction.objectStore(this.db_store_name);
+            if(key)
+                var request = store.get(key);
+            else
+                var request = store.getAll();
+            request.onsuccess = function() {
+                that.result= {key: key, value: request.result};
+                console.log(that.result);
+            }
+        }
+        , clear: function() {
+            var request = this.db.transaction(this.db_store_name, "readwrite").objectStore(this.db_store_name).clear();
+            request.onsuccess = function() {
+                console.log(request.result);
+            }
+        }
+        , search: function(keyword, limit) {
+            var that = this;
+            var transaction = this.db.transaction(this.db_store_name, "readonly");
+            var objectStore = transaction.objectStore(this.db_store_name);
+            var request = objectStore.openCursor();
+            var most = 0;
+            that.result = {};
+            request.onsuccess = function(event) {
+                var cursor = event.target.result;
+                if (cursor) {
+                    if (cursor.value.indexOf(keyword) !== -1&&most<=limit) {
+                        most++;
+                        key = cursor.key;
+                        value = cursor.value;
+                        src = {};
+                        src[key] = value;
+                        that.result = util.extend(src, that.result, true);
+                    }
+                    cursor.continue();
+                } else {
+                    console.log(that.result);
+                }
+            };
+        }
     }
 });
 
