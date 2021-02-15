@@ -306,7 +306,11 @@ def run_command(command, record=True):
             run_command(command, False)
     elif command == "clear":
         tello.clear()
+    elif command == "emergency":
+        print(tello.emergency())
     else:
         print("There is no such order")
     
     print("{}, {}".format(command, time.time()-start_time))
+
+run_command(command)
