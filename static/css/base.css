@@ -10,6 +10,7 @@ a { text-decoration: none; color: rgb(0,173,53); }
 a:hover { text-decoration: underline; }
 pre { font-family: Consolas, monospace; background-color: rgba(255, 255, 255, 1); }
 h1, footer { text-align: center; }
+.text-center { text-align: center; }
 
 /* 布局 */
 body { max-width: 90rem; margin: 0 auto; padding: 1rem;}

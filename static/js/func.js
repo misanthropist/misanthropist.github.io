@@ -139,7 +139,9 @@ util.wrap({
                 open_search(localStorage.getItem("google"), value);
             } else if (site == 'ce') {
                 func.dbObject.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'}, function() {
-                    func.dbObject.select(value)
+                    func.dbObject.select(value, function(result) {
+                        func.$('#result')[0].textContent = JSON.stringify(result);
+                    })
                 });
             }
         });
@@ -150,8 +152,10 @@ util.wrap({
                 open_search(localStorage.getItem("google"), value);
             } else if (e.keyCode == 13 && site == 'ce') {
                 func.dbObject.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'}, function() {
-                    func.dbObject.select(value);
-                });;
+                    func.dbObject.select(value,function(result) {
+                            func.$('#result')[0].textContent = JSON.stringify(result);
+                    });
+                });
             }
         });
 
@@ -234,7 +238,7 @@ util.wrap({
                 console.log('delete success');
             }
         }
-        , select: function(key) {
+        , select: function(key, fn) {
             var that = this;
             var transaction = this.db.transaction(this.db_store_name,"readwrite");
             var store = transaction.objectStore(this.db_store_name);
@@ -244,7 +248,7 @@ util.wrap({
                 var request = store.getAll();
             request.onsuccess = function() {
                 that.result= {key: key, value: request.result};
-                console.log(that.result);
+                fn(that.result);
             }
         }
         , clear: function() {

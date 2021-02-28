@@ -26,6 +26,145 @@ def find_repeat(img_urls):
                 print(a)
                 input()
 
+class Wie2(object):
+    def __init__(self):
+        self.url = "https://www.2bfab6a415d78a1c.com"
+        self.katong_url = "https://www.2bfab6a415d78a1c.com/tupian/list-%E5%8D%A1%E9%80%9A%E5%8A%A8%E6%BC%AB-{}.html"
+        
+    
+    def driver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        chrome = webdriver.Chrome(options=options)
+        return chrome
+
+    def get_data(self):
+        data = {}
+        for i in range(1, 252):
+            data[i] ={}
+            content = requests.get(self.katong_url.format(i), headers=random.choice(headers))
+            content.encoding = 'utf-8'
+            soup = BeautifulSoup(content.text, features="html.parser")
+            # chrome = self.driver()
+            # url = self.katong_url.format(i)
+            # chrome.get(url)
+            # items = chrome.find_elements_by_css_selector('#main-container > div.text-list-html > div > ul>li>a')[8:]
+            items = soup.select('#main-container > div.text-list-html > div > ul>li>a')[8:]
+            for j in items:
+                html_url = self.url + j.attrs['href']
+                # html_url = j.get_attribute('href')
+                # title = j.text.split('\n')[-1]
+                # chrome.get(html_url)
+                # img_urls = chrome.find_elements_by_css_selector('.videopic')
+
+                content = requests.get(html_url, headers=random.choice(headers))
+                content.encoding = 'utf-8'
+                soup = BeautifulSoup(content.text, features="html.parser")
+                img_urls = soup.select('.videopic')
+                meta = soup.select('#main-container > div.row.nav-row > div > span >a')
+                title = meta[-1].text
+                tag = meta[-2].text
+
+                data[i].update(dict(
+                    {title: 
+                        {'tag': tag, 'urls': [url.attrs['data-original'] for url in img_urls]}
+                    }
+                ))
+                if i%100 == 0:
+                    print("processed {}".format(i))
+                    with open(os.path.join('temp', 'wie2.json'), 'w') as f:
+                        json.dump(data, f)
+            # chrome.close()
+
+    def save_img(self, img_url):
+        names = img_url.split('/')
+        image_name = names[-2]+'_'+names[-1]
+        tujigudir = os.path.join('temp', 'tujigu')
+        try:
+            with requests.get(img_url, stream=True, headers=random.choice(headers)) as r:
+                image = r.content
+            with open(os.path.join(tujigudir,image_name), 'wb') as pic:
+                pic.write(image)
+        except:
+            print("please save {} again".format(img_url))
+            time.sleep(1)
+
+    def save_data(self):
+        img_urls = []
+        count = 0
+        with open(os.path.join('temp', 'wie2.json'), 'r') as f:
+            data = json.load(f)
+        
+        for k, v in data.items():
+            img_urls.extend(v['urls'])
+        for img_url in img_urls:
+            self.save_img(img_url)
+            count += 1
+            if count%100==0:
+                print("saved {}".format(count))
+
+class Tujigu(object):
+    def __init__(self):
+        self.url = "https://www.tujigu.com/a/{}"
+        self.img_url = "https://tjg.hywly.com/a/1/{}/{}.jpg"
+    
+    def driver(self):
+        options = webdriver.ChromeOptions()
+        options.add_argument('--headless')
+        options.add_argument('--disable-gpu')
+        chrome = webdriver.Chrome(options=options)
+        return chrome
+
+    def save_img(self, img_url):
+        names = img_url.split('/')
+        image_name = names[-2]+'_'+names[-1]
+        tujigudir = os.path.join('temp', 'tujigu')
+        try:
+            with requests.get(img_url, stream=True, headers=random.choice(headers)) as r:
+                image = r.content
+            with open(os.path.join(tujigudir,image_name), 'wb') as pic:
+                pic.write(image)
+        except:
+            print("please save {} again".format(img_url))
+            time.sleep(1)
+
+    def get_data(self):
+        data = {}
+        for i in range(101, 30000):
+            chrome = self.driver()
+            url = self.url.format(i)
+            chrome.get(url)
+            meta = chrome.find_elements_by_css_selector("body > div.tuji > p")
+            jigou = meta[0].text.split("：")[-1].strip()
+            bianhao = meta[1].text.split("：")[-1].strip()
+            shuliang = meta[2].text.split("：")[-1][:-1].strip()
+            mote = meta[3].text
+            tag = chrome.find_elements_by_css_selector("body > div.tags")[0].text
+            if meta:
+                img_urls = [self.img_url.format(i, j) for j in range(1,int(shuliang)+1)]
+                data.update(dict({i:{'tag': tag, 'jigou':jigou, 'bianhao':bianhao, 'shuliang':shuliang, 'mote':mote, 'urls': img_urls}}))
+                if i%10 == 0:
+                    print("processed {}".format(i))
+                    with open(os.path.join('temp', 'tujigu.json'), 'w') as f:
+                        json.dump(data, f)
+            chrome.close()
+
+    def save_data(self):
+        img_urls = []
+        count = 0
+        with open(os.path.join('temp', 'tujigu.json'), 'r') as f:
+            data = json.load(f)
+        
+        for k, v in data.items():
+            img_urls.extend(v['urls'])
+        for img_url in img_urls:
+            self.save_img(img_url)
+            count += 1
+            if count%100==0:
+                print("saved {}".format(count))
+                
+
 class Mztcx(object):
     def __init__(self):
         self.url = "https://mzt.cx/{}/"
@@ -163,4 +302,9 @@ if __name__ == "__main__":
     mztcx = Mztcx()
     # mztcx.save_url()
     # mztcx.save_data()
-    douban.clean_epub_by_publisher()
+    # douban.clean_epub_by_publisher()
+    tujigu = Tujigu()
+    # tujigu.get_data()
+    # tujigu.save_data()
+    wie2 = Wie2()
+    wie2.get_data()
