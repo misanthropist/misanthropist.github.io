@@ -129,5 +129,8 @@
         }
         assert(compress("foo=1&foo=2&blah=a&blah=b&foo=3") == "foo=1,2,3&blah=a,b","Compression is OK!");
     });
+    test("jquery", function () {
+        assert($().init() == "hello", "$().init() is 'hello'");
+    })
 
 })();

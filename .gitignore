@@ -1,2 +1,9 @@
 # Directories
 temp/
+__pycache__/
+ipynb/
+flask/
+
+# Files
+.env
+
