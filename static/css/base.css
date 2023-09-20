@@ -1,0 +1,104 @@
+/* 排版布局 */
+html {
+    font-family: "Segoe UI", "PingFang SC", "Arial", "Helvetica", "sans-serif";
+    font-size: 12px;
+    text-align: justify;
+    word-wrap: break-word;
+    word-break: break-all;
+    line-height: 1.6;
+    background-color: rgb(231,239,244);
+    color: black;
+}
+body { background-color: rgba(255, 255, 255, .7); max-width: 90rem; padding: 1rem; margin: 0 auto;}
+h1 { font-size: 3rem; text-align: center; }
+h2 { font-size: 2.5rem; }
+h3 { font-size: 2rem; }
+h4, p, a, li, pre, span, input { font-size: 1.5rem;}
+p { text-indent: 3rem; }
+h1, h2, h3 { margin: 1rem 0; }
+h4, p { margin: 0; }
+a { text-decoration: none; color: rgb(0,173,53); }
+a:hover { text-decoration: underline; }
+pre {
+    font-family: monospace;
+    background-color: rgba(255, 255, 255, 1);
+    white-space: pre-wrap;
+    max-height: 30rem;
+    max-width: 88rem;
+    padding: 0 1rem;
+    overflow: overlay; 
+}
+ul { list-style-type: none; padding: 0; }
+img { max-width: 100%; }
+header, main { max-width: 75rem; margin: 0 auto; }
+section { padding: 2rem 0; overflow: hidden; border-bottom: 1px solid rgba(27,31,35,.2); }
+header>p { font-size: 1.4rem; float: right; max-width: 80%;}
+header:after {
+    clear: both; content: "\0020";
+    display: block; height: 0;
+    overflow: hidden;
+    border-bottom: 1px solid rgba(27,31,35,.2);
+    padding-top: 2rem;
+}
+footer { text-align: center; padding-top: 10rem; }
+footer>p { text-indent: 0; }
+
+
+/** ----------------------------------------------- **/
+/** 特殊类 **/
+/** ----------------------------------------------- **/
+
+/* 代码 */
+.code {
+    font-family: Consolas, Monaco;
+    font-size: 1.5rem;
+    text-align:left;
+    line-height: 1.5;
+    background: #2d2d2d;
+    color: #999;
+    border-radius: .3rem;
+}
+
+/* 按钮 */
+.button { display: inline-block; margin: .4rem; padding: 0 .5rem; border:1px solid rgba(27,31,35,.2); border-radius: .25rem; }
+.button:hover { background-image: linear-gradient(-180deg,#2fcb53,#269f42 90%); text-decoration: none; color: #fff; cursor: pointer; }
+
+/* 图片卡片 */
+.img_card { text-align: center; display: inline-block; padding: 0.5rem; }
+.img_card>img { height: 16rem; border-radius: 0.5rem; }
+
+.center { text-align: center; }
+
+/* 左浮 */
+.left {
+    float: left;
+}
+.left:after {
+    clear: both; content: "\0020";
+    display: block; height: 0;
+    overflow: hidden;
+    padding-top: 2rem;
+}
+
+
+/* 右浮 */
+.right {
+    float: right;
+}
+.right:after {
+    clear: both; content: "\0020";
+    display: block; height: 0;
+    overflow: hidden;
+    padding-top: 2rem;
+}
+
+/** ----------------------------------------------- **/
+/** 特殊页面 **/
+/** ----------------------------------------------- **/
+
+/* pi_car */
+#streamimage {
+    margin: 0 15px 15px 0;
+    padding:1px;
+    border:1px solid #d0d0d0;
+}

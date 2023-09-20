@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <link rel="icon" href="/static/pic/favicon.ico" type="image/x-icon">
+    <title>特洛飞行器状态控制及人脸识别</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+</head>
+<body>
+    <h1>特洛飞行器状态控制及人脸识别</h1>
+    <p>2020年6月趁着Tello儿童节打折，便以499元购置了一台。参考官方给的SDK手册，以及利用dlib人脸识别库，做到了依据飞行器摄像头所拍摄的人脸状态来控制飞行器的飞行状态。</p>
+    <h2>1 开发环境</h2>
+    <h3>1.1 硬件准备</h3>
+    <h4>1.1.1 飞行器参数</h4>
+    <ul>
+        <li>
+            <p>重量:87克（含桨叶和电池）</p>
+        </li>
+        <li>
+            <p>尺寸:98×92.5×41 mm</p>
+        </li>
+        <li>
+            <p>桨叶:3 英寸</p>
+        </li>
+        <li>
+            <p>内置功能:红外定高，气压计定高，LED指示灯，下视视觉，WiFi连接，高清720P图传</p>
+        </li>
+        <li>
+            <p>接口:Micro USB充电接口</p>
+        </li>
+        <li>
+            <p>可拆卸电池:1.1Ah/3.8V</p>
+        </li>
+        <li>
+            <p>相机:500万像素</p>
+        </li>
+    </ul>
+    <h4>1.1.2 飞行性能</h4>
+    <ul>
+        <li>
+            <p>最大飞行距离:100米</p>
+        </li>
+        <li>
+            <p>最大飞行速度:8m/s</p>
+        </li>
+        <li>
+            <p>最大飞行时间:13分钟</p>
+        </li>
+        <li>
+            <p>最大飞行高度:30米</p>
+        </li>
+    </ul>
+    <h3>1.2 软件配置</h3>
+    <p>使用Termux终端来进行控制飞行器。</p>
+    <h4>1.2.1 系统配置</h4>
+    <p>更换软件源：</p>
+    <pre class="code">sed -i 's@^\(deb.*stable main\)$@#\1\ndeb https://mirrors.tuna.tsinghua.edu.cn/termux/termux-packages-24 stable main@' $PREFIX/etc/apt/sources.list
+sed -i 's@^\(deb.*games stable\)$@#\1\ndeb https://mirrors.tuna.tsinghua.edu.cn/termux/game-packages-24 games stable@' $PREFIX/etc/apt/sources.list.d/game.list
+sed -i 's@^\(deb.*science stable\)$@#\1\ndeb https://mirrors.tuna.tsinghua.edu.cn/termux/science-packages-24 science stable@' $PREFIX/etc/apt/sources.list.d/science.list
+pkg update
+    </pre>
+    <p>安装基本工具：</p>
+    <pre class="code">pkg install vim git curl wget tree proot clang neofetch exiftool cmake termux-api nginx mariadb php php-fpm python ffmpeg tmux openjdk-17 caddy dart gdb golang lua54 man nasm nodejs postgresql redis ruby rust sqlite
+    </pre>
+    <p>基本功能使用：</p>
+    <pre class="code"># 查看系统信息
+neofetch
+# 查看照片元数据
+exiftool img_file
+# 获取电池信息；获取通话记录；获取剪贴板信息；获取联系人信息；获取短信信息；获取声量信息；
+termux-battery-status; termux-call-log; termux-clipboard-get; termux-contact-list; termux-sms-list; termux-volume;
+# 设置亮度(auto or 1-255)；设置剪贴板信息；弹出对话框；弹出系统通知；发送短息；拨打电话；弹出应用通知；打开闪光灯；手机震动；
+termux-brightness auto; termux-clipboard-set; termux-dialog; termux-notification; termux-sms-send; termux-telephony-call; termux-toast; termux-torch on; termux-vibrate;
+# 设置存储
+termux-setup-storage
+# 传输文件
+scp local_file remote_username@remote_ip:remote_folder
+    </pre>
+    <h4>1.2.2 PHP开发环境</h4>
+    <p>搭建LNMP服务，运行私人网盘VFM、靶场DWVA、问答系统WeCenter。</p>
+    <p>操作nginx：</p>
+    <pre class="code">
+nginx # 启动Nginx
+nginx -s stop # 停止Nginx
+nginx -s reload # 重启Nginx
+    </pre>
+    <p>编辑Nginx的配置文件/etc/nginx/nginx.conf：</p>
+    <pre class="code">worker_processes 1;
+events {
+    worker_connections 1024;
+}
+http {
+    include mime.types;
+    default_type application/octet-stream;
+    sendfile on;
+    keepalive_timeout 65;
+    server {
+        set $root /data/data/com.termux/files/home/storage/dcim;
+        listen 8080;
+        server_name localhost;
+        client_max_body_size 2048m;
+
+        location / {
+            root $root;
+            index index.html index.htm index.php;
+        }
+    
+        error_page 500 502 503 504 /50x.html;
+        location = /50x.html {
+            root /data/data/com.termux/files/home/storage/dcim;
+        }
+        location ~ \.php$ {
+                root html;
+                fastcgi_pass 127.0.0.1:9000;
+                fastcgi_index index.php;
+                fastcgi_param SCRIPT_FILENAME $root$fastcgi_script_name;
+                include fastcgi_params;
+        }
+    }
+}
+    </pre>
+    <p>操作mysql：</p>
+    <pre class="code">nohup mysqld_safe & # 后台启动mysql
+kill -9 `pgrep mysql` # 关闭mysql
+mysql -u $(whoami) # 用户登陆mysql
+# 修改root密码
+use mysql;
+set password for 'root'@'localhost' = password('your_password');
+flush privileges;
+quit;
+mysql -u root -p # root登陆mysql
+# 开放root用户远程访问权限
+use mysql;
+grant all privileges on *.* to 'root'@'%' identified by 'your_password' with grant option;
+flush privileges;
+quit;
+    </pre>
+    <p>操作php-fpm：</p>
+    <pre class="code">php-fpm # 启动php-fpm服务</pre>
+    <p>编辑php-fpm配置文件/etc/php-fmp.d/www.conf：</p>
+    <pre class="code">listen = 127.0.0.1:9000 # 修改监听地址</pre>
+    <p>安装DVWA：</p>
+    <pre class="code">mysql -uroot -p*** -e "create database dvwa;show databases;" # 新建数据库
+cp dvwa/config/config.inc.php.dist dvwa/config/config.inc.php # 增加配置文件
+# 编辑配置文件的内容
+$_DVWA[ 'db_user' ] = 'root';
+$_DVWA[ 'db_password' ] = 'your_password';
+echo 'allow_url_include = on' > $PREFIX/lib/php.ini # 新建php.ini配置⽂件
+# 重启php-fpm
+kill -9 `pgrep fpm'
+php-fpm
+    </pre>
+    <pre class="code"></pre>
+    <h4>1.2.3 Python开发环境</h4>
+    <p></p>
+    <pre class="code"># 更换源：
+pip install -i https://pypi.tuna.tsinghua.edu.cn/simple pip -U
+pip config set global.index-url https://pypi.tuna.tsinghua.edu.cn/simple
+# 安装ipython, jupyter, numpy
+pip install ipython
+pkg install libzmq
+pip install jupyter
+pip install numpy
+    </pre>
+    <h2>2 飞行器状态控制</h2>
+    <h3>2.1 初始化状态及结束状态</h3>
+    <p>飞行器开机自动组建WiFi热点，IP地址为192.168.10.1。客户端以UDP协议，通过8889端口来发送命令和接受响应，通过8890端口接收飞行器状态，通过11111端口接收拍摄的图像。之后建立两个守护线程，一个接收命令响应，一个接受飞行器状态，然后再通过8889端口发送"command"命令以开启Tello的SDK模式。客户通过关闭socket来结束与飞行器的连接。代码如下。</p>
+    <pre class="code">
+class Tello(object):
+    def __init__(self):
+        self.tello_ip = '192.168.10.1'
+        self.command_port = 8889
+        self.state_port = 8890
+        self.video_port = 11111
+        
+
+        self.socket_command = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket_command.bind(('', self.command_port))
+        self.socket_video = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket_video.bind(('', self.video_port))
+        self.socket_state = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        self.socket_state.bind(('', self.state_port))
+
+        self.receive_command_thread = threading.Thread(target=self._receive_command_thread)
+        self.receive_command_thread.daemon = True
+        self.receive_command_thread.start()
+
+        self.receive_state_thread = threading.Thread(target=self._receive_state_thread)
+        self.receive_state_thread.daemon = True
+        self.receive_state_thread.start()
+        
+        self.command_timeout = 2
+        self.response = None
+        self.state = None
+        self.raw_pic = "."+os.path.sep+"temp"+os.path.sep+"h2640.jpeg"
+        self.raw_vid = "."+os.path.sep+"temp"+os.path.sep+"h264"
+        self.face_location = (0,0,0,0)
+        self.top = 220
+        self.bottom = 330
+        self.left= 330
+        self.right = 440
+        self.landoff_len = 220
+
+        self.send_command("command")
+    
+    def __del__(self):
+        self.socket_command.close()
+        self.socket_state.close()
+        self.socket_video.close()
+
+    def _receive_command_thread(self):
+        while True:
+            try:
+                self.response, ip = self.socket_command.recvfrom(1024)
+                #print(self.response)
+            except socket.error as e:
+                print("Caught exception socket.error: {}".format(e))
+
+    def _receive_state_thread(self):
+        while True:
+            try:
+                self.state, ip = self.socket_state.recvfrom(1024)
+                break
+            except socket.error as e:
+                print("Caught exception socket.error: {}".format(e))
+
+    def send_command(self, command):
+        self.socket_command.sendto(command.encode('utf-8'), (self.tello_ip, self.command_port))
+        start = time.time()
+        n = 0
+        while self.response is None:
+            time.sleep(0.1)
+            n = n + 0.1
+            if n > self.command_timeout:
+                break
+        dur = time.time()-start
+        if self.response is None:
+            response = 'none_response'
+        else:
+            response = self.response.decode('utf-8')
+        self.response = None
+        print(command, response, dur)
+        return (command, response, dur)
+    </pre>
+    <h3>2.2 运动状态</h3>
+    <p>命令分为三种：控制命令(起飞降落前进后退等)、设置命令(速度设定等)、读取命令(飞行器状态)。如果Tello在15秒内没有收到任何命令输入，它将自动着陆。代码如下。</p>
+    <pre class="code">
+class Tello(object):
+    def __init__(self):
+        pass
+        def takeoff(self):
+        return self.send_command('takeoff')
+
+    def land(self):
+        return self.send_command('land')
+    
+    def rotate(self, direction='cw', degrees=90):
+        """
+        Args:
+        direction (str): 'cw', 'ccw'
+        degrees (int): 1-3600
+        """
+        return self.send_command('{} {}'.format(direction, degrees))
+    
+    def set_speed(self, speed=10):
+        return self.send_command('speed {}'.format(speed))
+
+    def flip(self, direction='f'):
+        """
+        Args:
+        direction (str): 'l', 'r', 'f', 'b'
+        """
+        return self.send_command('flip {}'.format(direction))
+    
+    def move(self, direction, distance=20):
+        """Moves in a direction for a distance
+        Args:
+        direction (str): 'forword', 'back', 'right', 'left', 'up', 'down'
+        distance (int): 20-500cm
+        """
+        return self.send_command('{} {}'.format(direction, distance))
+    
+    def streamoff(self):
+        return self.send_command('streamoff')
+
+    def emergency(self):
+        return self.send_command('emergency')
+
+    def go(self, x, y, z, speed):
+        """
+        Args:
+        x,y,z (int): 20-500cm
+        speed (int): 10-100cm/s
+        """
+        return self.send_command('go {} {} {}'.format(x,y,z,speed))
+    
+    def curve(self, x1, y1, z1, x2, y2, z2, speed):
+        """
+        Args:
+        x1,y1,z1,x2,y2,z2 (int): -500-500cm
+        speed: 10-60cm/s
+        坐标之差大于20
+        """
+        return self.send_command('curve {} {} {} {} {} {} {}'.format(x1,y1,z1,x2,y2,z2,speed))
+    
+    def speed(self, speed):
+        """
+        Args:
+        speed (int): 10-100cm/s
+        """
+        return self.send_command("speed {}".format(speed))
+    
+    def wifi(self, pwd):
+        return self.send_command("wifi ssid {}".format(pwd))
+
+    def read_state(self, command):
+        """
+        Args:
+        command (str): speed?, battery?, time?, height?, temp?, attitude?, baro?, acceleration?, tof?, wifi?
+        """
+        return self.send_command("{}".format(command))
+    </pre>
+    <h3>2.3 记录命令状态</h3>
+    <p>记录每次调用的命令，然后重复全部命令。</p>
+    <pre class="code">
+class Tello(object):
+    def __init__(self):
+        pass
+    
+    def record(self, command):
+        with open('tello_commands', 'a') as f:
+            f.write(command+',')
+
+    def recall(self):
+        with open('tello_commands', 'r') as f:
+            commands = f.read().split(',')
+        return commands
+
+    def clear(self):
+        with open('tello_commands', 'w') as f:
+            f.write('')
+
+    def cruise(self):
+        tello.get_pic()
+        while True:
+            time.sleep(4)
+            top,bottom,left,right = self.face_location
+            print(top,bottom,left,right)
+            if bottom-top > tello.landoff_len or top==bottom:
+                print(self.land())
+                break
+            else:
+                if top-tello.top > 10:
+                    print(self.move('down'))
+                if tello.top-top >10:
+                    print(self.move("up"))
+                if left-tello.left > 10:
+                    print(self.move("right"))
+                if tello.left - left > 10:
+                    print(self.move("left"))
+                if tello.landoff_len-(bottom-top) > 10:
+                    print(self.move("forward"))
+    </pre>
+    <h2>3 人脸识别</h2>
+    <p>主要是借助建立在dlib上的face_recognition库实现人脸的识别，得到在图片上的人脸像素范围。我所用的客户端为小米MAX2上的termux应用，其处理一张960x720大小的图片大概需要2秒。</p>
+    <p>发送"streamon"命令接收Tello视频流，从飞行器接收1秒的h264视频文件，然后用ffmpeg提取一张关键帧，再调用face_recognition库得到图片中的实时人脸位置，最后与自己设定的标准人脸位置进行对比，根据情况调用特洛SDK相应命令调整飞行器飞行状态。代码如下。</p>
+    <pre class="code">
+class Tello(self):
+    def __init__(self):
+        pass
+
+    def get_pic(self):
+        self.streamon()
+        begin = time.time()
+        packet_data = b""
+        while True:
+            try:
+                res_string, ip = self.socket_video.recvfrom(2048)
+                packet_data = b''.join([packet_data, res_string])
+                dur = time.time()-begin
+                if dur > 1:
+                    with open(self.raw_vid, 'wb') as f:
+                        f.write(packet_data)
+                    os.system("ffmpeg -loglevel quiet -y -i {} -vf select='eq(pict_type\,I)' -vsync vfr {}".format(self.raw_vid, self.raw_pic))
+                    self.face_location = self.get_face_location(self.raw_pic)
+                    break
+            except socket.error as exc:
+                print("Caught exception socket.error : %s" % exc)
+        # self.receive_video_thread = threading.Thread(target=self._receive_video_thread)
+        # self.receive_video_thread.daemon = True
+        # self.receive_video_thread.start()
+    
+    def get_face_other(self, imgname):
+        img = face_recognition.load_image_file(imgname)
+        face_landmarks = face_recognition.face_landmarks(img)
+        face_encoding = face_recognition.face_encodings(img)
+        return face_landmarks, face_encoding
+
+
+    def get_face_location(self, imgname):
+        top=bottom=left=right=0
+        img = face_recognition.load_image_file(imgname)
+        face_location = face_recognition.face_locations(img)
+        face_num = len(face_location)
+        if face_num > 0:
+            top, right, bottom, left = face_location[0]
+        # print("f:{}".format(face_location))
+        return (top, bottom, left, right)
+    
+    def cruise(self):
+        while True:
+            tello.get_pic()
+            time.sleep(4)
+            top,bottom,left,right = self.face_location
+            print(top,bottom,left,right)
+            if bottom-top > tello.landoff_len or top==bottom:
+                print(self.land())
+                break
+            else:
+                if top-tello.top > 10:
+                    print(self.move('down'))
+                if tello.top-top >10:
+                    print(self.move("up"))
+                if left-tello.left > 10:
+                    print(self.move("right"))
+                if tello.left - left > 10:
+                    print(self.move("left"))
+                if tello.landoff_len-(bottom-top) > 10:
+                    print(self.move("forward"))
+    </pre>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/func.js"></script>
+    <script src="/static/js/router.js"></script>
+</body>
+</html>

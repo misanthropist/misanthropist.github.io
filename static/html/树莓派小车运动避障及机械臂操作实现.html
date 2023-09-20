@@ -1,0 +1,395 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <link rel="icon" href="/static/pic/favicon.ico" type="image/x-icon">
+    <title>树莓派小车运动避障及机械臂操作实现</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+</head>
+<body>
+    <h1>树莓派小车运动避障及机械臂操作实现</h1>
+    <p>我在2019年3月买了一块树莓派3，本想用它来熟悉linux环境并用来写代码，但是cygwin实在用的顺手，而且Windows10又美观实用，所以之后便一直让它在吃灰。2020年7月看着闲置的树莓派，总想用它做点什么，便购置了一辆自带树莓派扩展版(HAT)的四轮小车。然后便搭建开发环境，实现了蜂鸣器、小车运动、避障监视、机械臂操作四大功能。</p>
+    <h2>1 开发环境</h2>
+    <h3>1.1 硬件准备</h3>
+    <p>树莓派采用的是Raspberry Pi3 B+，参数如下图：</p>
+    <br>
+    <img class="center" src="/static/pic/pi/pi3.jpg">
+    <p>树莓派扩展版的布局如下图：</p>
+    <img class="center" src="/static/pic/pi/HAT.jpg">
+    <p>其他配件有8.4V/2A充电器一个，拆卸式3.7V可充电锂电池2节、1:48强磁抗干扰器碳刷电机4个、塑料车轮4个、HC-SR04超声波模块1个、usb摄像头1个、SG90舵机3个、红外传感器2个、三自由度木制机械臂1个、亚克力板和铜柱螺丝电线若干。</p>
+    <h3>1.2 软件配置</h3>
+    <p>选择的操作系统是Raspbian，是树莓派推荐的Linux发行版，它是在Debian发行版的基础上添加了一些软件并进行了配置。</p>
+    <p>树莓派上电后，a.运行GPU中的ROM代码，挂载SD卡中的FAT32文件系统；b.运行SD卡中的bootcode.bin来启动start.elf，进而读取配置文件config.txt、内核运行参数cmdline.txt，将内核kernel.img加载到内存，系统正式启动；c.挂载EXT4文件系统。</p>
+    <h4>1.2.1 配置WiFi、SSH</h4>
+    <p>选择一个SD卡写入工具，将Raspbian系统镜像img文件写入SD卡。Raspbian系统允许在开机前对WiFi网络和ssh进行配置，所以先在SD卡/boot目录下新建wpa_supplicant.conf，然后填入如下代码：</p>
+    <pre class="code">country=CN
+ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
+update_config=1
+
+network={
+    ssid="wifi_name"
+    psk="wifi_password"
+    key_mgmt=WPA-PSK
+    priority=1
+}</pre>
+    <p>key_mgmt代表WiFi使用的加密方式，priority代表优先级，数值越大优先级越大。再在/boot目录下新建ssh空白文件，这样开机自动启动sshd服务。将SD卡插入树莓派并启动电源，根据路由器查询树莓派IP地址，输入ssh指令连接树莓派。</p>
+    <pre class="code">ssh-keygen #本地主机生成公私钥
+ssh-copy-id user@host #将公钥传送到树莓派host上
+ssh user@host #以ssh命令行方式登陆树莓派</pre>
+    <h4>1.2.2 安装基本软件</h4>
+    <p>更换软件源：</p>
+    <pre class="code"># 编辑 `/etc/apt/sources.list` 文件，删除原文件所有内容，用以下内容取代：
+deb http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian/ buster main non-free contrib rpi
+deb-src http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian/ buster main non-free contrib rpi
+
+# 编辑 `/etc/apt/sources.list.d/raspi.list` 文件，删除原文件所有内容，用以下内容取代：
+deb http://mirrors.tuna.tsinghua.edu.cn/raspberrypi/ buster main ui
+    </pre>
+    <pre class="code"># 添加公钥
+gpg --keyserver  keyserver.ubuntu.com --recv-keys 9165938D90FDDD2E
+gpg --export --armor  9165938D90FDDD2E | sudo apt-key add -
+# 更新
+sudo apt-get update
+# 安装软件
+sudo apt-get install vim git</pre>
+    <p>安装git，创建空仓库，以便于本地向树莓派主机提交代码。</p>
+    <pre class="code">apt-get install git
+git init --bare gitrepo
+git config --global user.email your_email # 配置提交者的邮箱
+git config --global user.name your_name # 配置提交者的名字
+git remote set-url origin git@github.com:user/repo # 配置远程仓库</pre>
+    <h4>1.2.3 网页显示树莓派运行状态</h4>
+    <p>根据Github上的的Pi Dashboard项目修改而成，删减了大部分功能，保留了CPU、内存、磁盘运行状态。</p>
+    <img class="center" src="/static/pic/pi/pi_dashboard.png" alt="pi_dashboard">
+    <h2>2 蜂鸣器模块</h2>
+    <p>将一首歌曲的简谱转化为由声音频率和持续时长组成的数据，然后便可以根据该数据将这首歌的旋律在蜂鸣器展现出来。</p>
+    <h3>2.1 PWM原理</h3>
+    <p>采用的是无源蜂鸣器，其内部没有振荡源，必须用振荡的电流驱动它，因此需要PWM接口。PWM(Pulse Width Modulation)即脉冲宽度调制，是以微处理器的数字输出来控制模拟电路的控制技术。</p>
+    <img class="center" src="/static/pic/pi/pwm.png" alt="PWM">
+    <p>上图t<sub>pwm</sub>就是一个周期时长，t<sub>on</sub>是高电平时长，D为占空比。</p>
+    <p>设定蜂鸣器PWM的占空比为50%，用PWM频率来模拟声音的频率，频率持续时间模拟声音的节拍。</p>
+    <pre class="code"><code class="language-python line-numbers">buzz = GPIO.PWM(channel, freq)
+buzz.start(50)
+def sing(freq, dur):
+    buzz.ChangeFrequency(freq)
+    time.sleep(dur)</code></pre>
+    <h3>2.2 乐理知识</h3>
+    <p>一首乐曲有若干音符组成，每个音符由音调和演奏时间组成。不同的音调在物理上就对应不同频率的音波。所以我们只要控制输出的频率和时长就能输出一首音乐了。下面三张图分别是音符-钢琴键盘对照表、音符-简谱对照表、上海滩的简谱。</p>
+    <img class="center" src="/static/pic/pi/piano.png" alt="钢琴键盘">
+    <br>
+    <img class="center" src="/static/pic/pi/jianpu.png" alt="简谱">
+    <br>
+    <img class="center" src="/static/pic/pi/shanghaitan.jpg" alt="上海滩">
+    <p>选取上海滩开头部分的简谱就能得出其对应的频率和节拍，代码如下。</p>
+    <pre class="code">note2freq = {
+        "NOTE_NULL" : 0, "NOTE_B0" : 31, "NOTE_C1" : 33, "NOTE_CS1" : 35, "NOTE_D1" : 37, "NOTE_DS1" : 39, "NOTE_E1" : 41, "NOTE_F1" : 44, "NOTE_FS1" : 46, "NOTE_G1" : 49, "NOTE_GS1" : 52, "NOTE_A1" : 55, "NOTE_AS1" : 58, "NOTE_B1" : 62, "NOTE_C2" : 65, "NOTE_CS2" : 69, "NOTE_D2" : 73, "NOTE_DS2" : 78, "NOTE_E2" : 82, "NOTE_F2" : 87, "NOTE_FS2" : 93, "NOTE_G2" : 98, "NOTE_GS2" : 104, "NOTE_A2" : 110, "NOTE_AS2" : 117, "NOTE_B2" : 123, "NOTE_C3" : 131, "NOTE_CS3" : 139, "NOTE_D3" : 147, "NOTE_DS3" : 156, "NOTE_E3" : 165, "NOTE_F3" : 175, "NOTE_FS3" : 185, "NOTE_G3" : 196, "NOTE_GS3" : 208, "NOTE_A3" : 220, "NOTE_AS3" : 233, "NOTE_B3" : 247, "NOTE_C4" : 262, "NOTE_CS4" : 277, "NOTE_D4" : 294, "NOTE_DS4" : 311, "NOTE_E4" : 330, "NOTE_F4" : 349, "NOTE_FS4" : 370, "NOTE_G4" : 392, "NOTE_GS4" : 415, "NOTE_A4" : 440, "NOTE_AS4" : 466, "NOTE_B4" : 494, "NOTE_C5" : 523, "NOTE_CS5" : 554, "NOTE_D5" : 587, "NOTE_DS5" : 622, "NOTE_E5" : 659, "NOTE_F5" : 698, "NOTE_FS5" : 740, "NOTE_G5" : 784, "NOTE_GS5" : 831, "NOTE_A5" : 880, "NOTE_AS5" : 932, "NOTE_B5" : 988, "NOTE_C6" : 1047, "NOTE_CS6" : 1109, "NOTE_D6" : 1175, "NOTE_DS6" : 1245, "NOTE_E6" : 1319, "NOTE_F6" : 1397, "NOTE_FS6" : 1480, "NOTE_G6" : 1568, "NOTE_GS6" :1661, "NOTE_A6" : 1760, "NOTE_AS6" : 1865, "NOTE_B6" : 1976, "NOTE_C7" : 2093, "NOTE_CS7" : 2217, "NOTE_D7" : 2349, "NOTE_DS7" : 2489, "NOTE_E7" : 2637, "NOTE_F7" : 2794, "NOTE_FS7" : 2960, "NOTE_G7" : 3136, "NOTE_GS7" : 3322, "NOTE_A7" : 3520, "NOTE_AS7" : 3729, "NOTE_B7" : 3951, "NOTE_C8" : 4186, "NOTE_CS8" : 4435, "NOTE_D8" : 4699, "NOTE_DS8" : 4978
+    }
+num2note = {
+    "0" : "NOTE_NULL", "7----" : "NOTE_B0", "1---" : "NOTE_C1", "2---" : "NOTE_D1", "3---" : "NOTE_E1", "4---" : "NOTE_F1", "5---" : "NOTE_G1", "6---" : "NOTE_A1", "7---" : "NOTE_B1", "1--" : "NOTE_C2", "2--" : "NOTE_D2", "3--" : "NOTE_E2", "4--" : "NOTE_F2", "5--" : "NOTE_G2", "6--" : "NOTE_A2", "7--" : "NOTE_B2", "1-" : "NOTE_C3", "2-" : "NOTE_D3", "3-" : "NOTE_E3", "4-" : "NOTE_F3", "5-" : "NOTE_G3", "6-" : "NOTE_A3", "7-" : "NOTE_B3", "1" : "NOTE_C4", "2" :"NOTE_D4", "3" : "NOTE_E4", "4" : "NOTE_F4", "5" : "NOTE_G4", "6" : "NOTE_A4", "7" : "NOTE_B4", "1+" : "NOTE_C5", "2+" : "NOTE_D5", "3+" : "NOTE_E5", "4+" : "NOTE_F5", "5+" : "NOTE_G5", "6+" : "NOTE_A5", "7+" : "NOTE_B5", "1++" : "NOTE_C6", "2++" : "NOTE_D6", "3++" : "NOTE_E6", "4++" : "NOTE_F6", "5++" : "NOTE_G6", "6++" : "NOTE_A6", "7++" : "NOTE_B6", "1+++" : "NOTE_C7", "2+++" : "NOTE_D7", "3+++" : "NOTE_E7", "4+++" : "NOTE_F7", "5+++" : "NOTE_G7", "6+++" : "NOTE_A7", "7+++" : "NOTE_B7", "1++++" : "NOTE_C8"
+}
+shanghaitan = {
+    "nums" : ["3", "5", "6", "3", "5", "2", "3", "5", "6", "1+", "6", "5", "1", "3", "2", "2", "3", "5", "2", "3", "3", "6-", "6-", "6-", "1", "2", "3", "2", "7-", "6-", "1", "5-"],
+    "beats" : [0.5, 0.5, 3, 0.5, 0.5, 3, 0.5, 0.5, 0.5, 1, 0.5, 1, 0.5, 0.5, 3, 0.5, 0.5, 3, 0.5, 0.5, 0.5, 0.5, 2, 0.5, 0.5, 1.5, 0.5, 0.5, 0.5, 0.5, 0.5, 3]
+}
+    
+freqs = [note2freq[num2note[num]] for num in shanghaitan["nums"]]
+beats = shanghaitan["beats"]
+    </pre>
+    <h2>3 运动模块</h2>
+    <p>使用了四块直流步进电机，并用TB6612FNG芯片驱动，实现了小车前进、后退、左转向、右转向四种模式。</p>
+    <h3>3.1 直流步进电机</h3>
+    <p>步进电机是一种将电脉冲信号转换成相应角位移或线位移的电动机。</p>
+    <h3>3.2 驱动芯片</h3>
+    <p>TB6612FNG 是东芝半导体公司生产的一款直流电机驱动器件，它具有大电流MOSFET-H 桥结构，双通道电路输出，可同时驱动2个电机，下图为原理图。</p>
+    <img src="/static/pic/pi/TB6612FNG.png" alt="TB6612FNG原理图">
+    <h3>3.3 运动模式</h3>
+    <p>a. 前进模式</p>
+    <pre class="code">
+L_Motor.ChangeDutyCycle(speed)
+GPIO.output(AIN1,True)
+GPIO.output(AIN2,False)
+
+R_Motor.ChangeDutyCycle(speed)
+GPIO.output(BIN1,True)
+GPIO.output(BIN2,False)
+    </pre>
+    <p>b. 后退模式</p>
+    <pre class="code">
+L_Motor.ChangeDutyCycle(speed)
+GPIO.output(AIN1,False)
+GPIO.output(AIN2,True)
+
+R_Motor.ChangeDutyCycle(speed)
+GPIO.output(BIN1,False)
+GPIO.output(BIN2,True)
+    </pre>
+    <p>c. 左转向模式</p>
+    <pre class="code">
+L_Motor.ChangeDutyCycle(speed)
+GPIO.output(AIN1,False)
+GPIO.output(AIN2,True)
+
+R_Motor.ChangeDutyCycle(speed)
+GPIO.output(BIN1,True)
+GPIO.output(BIN2,False)
+    </pre>
+    <p>d. 右转向模式</p>
+    <pre class="code">
+L_Motor.ChangeDutyCycle(speed)
+GPIO.output(AIN1,True)
+GPIO.output(AIN2,False)
+
+R_Motor.ChangeDutyCycle(speed)
+GPIO.output(BIN1,False)
+GPIO.output(BIN2,True)
+    </pre>
+    <h2>4 避障监视</h2>
+    <h3>4.1 红外、超声波感知</h3>
+    <p>红外模块仅能感知前方10cm以内的障碍物，而超声波模块感知的距离相对较远。红外原理相对简单，代码如下。</p>
+    <pre class="code">
+if GPIO.input(SensorLeft) == True and GPIO.input(SensorRight) == True:
+    return "11" #左右无障碍
+elif GPIO.input(SensorLeft) == True and GPIO.input(SensorRight) == False:
+    return "10" #左无右有
+elif GPIO.input(SensorLeft) == False and GPIO.input(SensorRight) == True:
+    return "01" #左有右无
+else:
+    return "00" #左右有障碍
+    </pre>
+    <p>超声波所采用的模块为HC-SR04，下图为其实物图、参数表、测距原理图。</p>
+    <img src="/static/pic/pi/HC-SR04.png" alt="HC-SR04实物图">
+    <br>
+    <img src="/static/pic/pi/HC-SR04_canshu.png" alt="HC-SR04参数表">
+    <br>
+    <img src="/static/pic/pi/chaosheng.png" alt="超声波测距原理图">
+    <br>
+    <img src="/static/pic/pi/timing_diagram.png" alt="HC-SR04运行原理">
+    <p>整个测距过程为：a. 树莓派向Trig发送一个至少持续10μs的高电平脉冲信号。b. HC-SR04 接收到树莓派发送的脉冲信号，开始发送8个40kHz超声波，发送完后自动将Echo置为高电平，然后准备接收返回的超声波。c. 当HC-SR04接收到返回的超声波(receive returned ultrasound)时，Echo变为低电平。代码如下。</p>
+    <pre class="code">
+GPIO.output(TRIG, 0)
+time.sleep(0.000002)
+
+GPIO.output(TRIG, 1)
+time.sleep(0.00001)
+GPIO.output(TRIG, 0)
+
+while GPIO.input(ECHO) == 0:
+    pass
+t1 = time.time()
+while GPIO.input(ECHO) == 1:
+    pass
+t2 = time.time()
+dis = (t2-t1)*340*100/2
+    </pre>
+    <h3>4.2 监视系统</h3>
+    <p>采用mjpg_streamer程序进行实时监控。</p>
+    <pre class="code">sudo apt-get install cmake libjpeg8-dev
+git clone git@github.com:jacksonliam/mjpg-streamer
+cd mjpg-streamer-experimental
+make
+sudo make install
+# 开启摄像头
+mjpg_streamer -i "/usr/local/lib/mjpg-streamer/input_uvc.so -d /dev/video0" -n -f 30 -o "/usr/local/lib/mjpg-streamer/output_http.so -w /usr/local/share/mjpg-streamer/www -p 8080" /dev/null 2>&1 &
+# 关闭摄像头
+mjpg=`pidof mjpg_streamer` && kill -9 $mjpg
+    </pre>
+    <h3>4.3 舵机模块</h3>
+    <p>总共使用了三块SG90舵机来控制摄像头和HC-SR04转向，超声波一块，摄像头两块，具体参数如下图。</p>
+    <img src="/static/pic/pi/sg90.png" alt="sg90参数图">
+    <p>控制舵机使用的是PCA9680芯片，它是16路pwm模块，使用I2C总线可以控制16路舵机，每路12位分辨率(4096级)。</p>
+    <p>SG90舵机内部有一个基准电路，产生周期为20ms、宽度为1.5ms的基准信号。基准信号（1.5ms）与控制信号(0.5ms~2.5ms)相比较，从而判断舵机应该往何种方向转动以及转动的角度大小。舵机接收来自信号线的控制信号，电机在转动时，会带动反馈电位计的转动，电位计将输出一个电压信号到舵机控制板，进行反馈，该信号与控制信号进行比较，从而调整转动方向与速度，直到反馈信号与控制信号相同。</p>
+    <p>实现舵机转动的代码如下。</p>
+    <pre class="code">
+from Adafruit_PWM_Servo_Driver import PWM
+
+def setServoPulse(pwm, channel, pulse):
+    pulseLength = 1000000.0/50.0/4096.0
+    pulse = pulse*1000.0/pulseLength
+    pwm.setPWM(channel, 0, int(pulse))
+
+def write(pwm, servonum, x):
+    y = x/90.0+0.5
+    y = max(y, 0.5)
+    y = min(y, 2.5)
+    setServoPulse(pwm, servonum, y)
+
+def rotate(servonum, angle=90):
+    pwm = PWM(0x40, debug=True)
+    pwm.setPWMFreq(50)
+    write(pwm, servonum, angle)
+    </pre>
+    <h3>4.4 避障巡航</h3>
+    <p>人眼避障，通过旋转摄像头人眼观察周围是否有障碍物，然后手动进行前进、后退等操作，代码如下。</p>
+    <pre class="code">
+def restore():
+    set_angles(isBase=True)
+    ultrasonic_rotate()
+    time.sleep(0.1)
+    horizontal_rotate()
+    time.sleep(0.1)
+    vertical_rotate()
+    time.sleep(0.1)
+
+def camera_walk():
+    restore()
+    horizontal_rotate(angle=60, mode='cw')
+    time.sleep(0.1)
+    for i in range(30):
+        horizontal_rotate(angle=5)
+        time.sleep(0.5)
+    restore()
+    vertical_rotate(angle=40)
+    time.sleep(0.1)
+    horizontal_rotate(angle=60, mode='cw')
+    time.sleep(0.1)
+    for i in range(30):
+        horizontal_rotate(angle=5)
+        time.sleep(0.5)
+    restore()
+    </pre>
+    <p>红外、超声波自主避障，代码如下。</p>
+    <pre class="code">
+while True:
+    if state() == "00":
+        backword() #红外检测左右有障碍，后退
+    if state() == "11":
+        forword() #红外检测左右无障碍，前进
+    if state() == "01":
+        right() #红外检测左有右无，右转
+        time.sleep(0.3)
+    if state() == "10":
+        left() #红外检测左无右有，左转
+        time.sleep(0.3)
+    if distance() < 10: #超声波判断运动模式
+        stop()
+        servo.restore()
+        servo.ultrasonic_rotate(angle=60)
+        time.sleep(0.1)
+        if distance() > 40:
+            right()
+            time.sleep(0.3)
+            servo.restore()
+        else:
+            servo.restore()
+            servo.ultrasonic_rotate(angle=60, mode="cw")
+            time.sleep(0.1)
+            if distance() > 40:
+                left()
+                time.sleep(0.3)
+                servo.restore()
+            else:
+                stop()
+                break
+    </pre>
+    <p>记录之前的运动模式，代码如下。</p>
+    <pre class="code">
+def record(command):
+    with open('commands', 'a') as f:
+    f.write(command+',')
+
+def recall():
+    with open('commands', 'r') as f:
+        commands = f.read().split(',')
+    return commands
+
+def clear():
+    with open('commands', 'w') as f:
+        f.write('')
+    </pre>
+    <h2>5 机械臂模块</h2>
+    <p>选用三自由度的木板机械臂，采用SG90舵机力矩，具体参数见上节。</p>
+    <h3>5.1 初始状态和关闭状态，代码如下。</h3>
+    <pre class="code">
+def init_arms():
+    rotate(arm1, 80)
+    time.sleep(0.1)
+    for i in range(10, 110, 10):
+        rotate(arm2, i)
+        time.sleep(0.1)
+        rotate(arm3, abs(i-130))
+        time.sleep(0.1)
+    angles["arm1"] = 80
+    angles["arm2"] = 100
+    angles["arm3"] = 30
+    set_angles()
+
+def close_arms(self):
+    rotate(arm1, 80)
+    time.sleep(0.1)
+    rotate(arm2, 100)
+    time.sleep(0.1)
+    for i in range(10, 150, 10):
+        rotate(arm3, i)
+        time.sleep(0.1)
+    for i in range(90, 0, -10):
+        rotate(arm2, i)
+        time.sleep(0.1)
+    angles["arm1"] = 80
+    angles["arm2"] = 140
+    angles["arm3"] = 10
+    set_angles()
+    </pre>
+    <h3>5.2 DH Standard表示法</h3>
+    <table cellpadding="10">
+        <thead>
+            <tr>
+                <td>θ<sub>i</sub></td>
+                <td>d<sub>i</sub></td>
+                <td>a<sub>i</sub></td>
+                <td>α<sub>i</sub></td>
+                <td>q<sup>-</sup></td>
+                <td>q<sup>+</sup></td>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <td>q1</td>
+                <td>0.0</td>
+                <td>0.0</td>
+                <td>90.0°</td>
+                <td>-45.0°</td>
+                <td>45.0°</td>
+            </tr>
+            <tr>
+                <td>q2+180°</td>
+                <td>0.0</td>
+                <td>0.08</td>
+                <td>0.0</td>
+                <td>-100.0°</td>
+                <td>-180.0°</td>
+            </tr>
+            <tr>
+                <td>q3+180°</td>
+                <td>0.0</td>
+                <td>0.1</td>
+                <td>0.0°</td>
+                <td>0.0°</td>
+                <td>150.0°</td>
+            </tr>
+        </tbody>
+    </table>
+    <h3>5.3 RoboticsToolbox模拟</h3>
+    <p>建立机械臂的DH参数模型及相关操作：</p>
+    <pre class="code">
+import roboticstoolbox as rtb
+import math
+
+robot=rtb.DHRobot([
+    rtb.RevoluteDH(alpha=math.pi/2,qlim=[-math.pi/4, math.pi/4]), 
+    rtb.RevoluteDH(a=0.08,offset=math.pi,qlim=[-math.pi*5/9,-math.pi]), 
+    rtb.RevoluteDH(a=0.1,offset=math.pi,qlim=[0,math.pi*5/6,])
+])
+robot.plot([0,-math.pi/6-math.pi/2,math.pi/3])
+T = robot.fkine(robot.q) #求解机械臂正运动
+print(T.t) #机械臂末端坐标
+Q = robot.ikine_LMS(T) #求解机械臂逆运动
+    </pre>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/func.js"></script>
+    <script src="/static/js/router.js"></script>
+</body>
+</html>
