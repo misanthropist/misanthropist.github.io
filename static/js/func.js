@@ -125,32 +125,33 @@ util.wrap({
     /* IndexDB接口 */
     , dbObject: {
         result: {}
-        , create_ce: function(url) {
-            that = this;
-            this.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'});
-            var data = '';
-            func.ajax('get', url, function(data){
-                data = data.split('\r\n').slice(31, -1);
-                var transaction = that.db.transaction('test', "readwrite");
-                var store = transaction.objectStore('test');
-                var request;
-                data.forEach(function(value, key, item) {
-                    var key=value.split('/')[0].split(' ')[1];
-                    request = store.put(value,key);
-                });
-                request.onsuccess = function(){
-                    console.log("put success");
-                };
-                request.onerror = function(event){
-                    console.log(event);
-                }
-            });
-        }
+        // , create_ce: function(url) {
+        //     that = this;
+        //     this.init({'db_name':'ce', 'db_version':'1', 'db_store_name':'test'});
+        //     var data = '';
+        //     func.ajax('get', url, function(data){
+        //         data = data.split('\r\n').slice(31, -1);
+        //         var transaction = that.db.transaction('test', "readwrite");
+        //         var store = transaction.objectStore('test');
+        //         var request;
+        //         data.forEach(function(value, key, item) {
+        //             var key=value.split('/')[0].split(' ')[1];
+        //             request = store.put(value,key);
+        //         });
+        //         request.onsuccess = function(){
+        //             console.log("put success");
+        //         };
+        //         request.onerror = function(event){
+        //             console.log(event);
+        //         }
+        //     });
+        // }
         , init: function(args, fn) {
             var that = this;
             this.db_name = args.db_name;
             this.db_version = args.db_version;
             this.db_store_name = args.db_store_name;
+            this.db_saved = true;
             if (!window.indexedDB) {
                 window.alert("Not Support");
             }
@@ -160,25 +161,33 @@ util.wrap({
             };
             request.onupgradeneeded = function(e) {
                 that.db = e.target.result;
-                that.db.createObjectStore(that.db_store_name);
+                if (!that.db.objectStoreNames.contains(that.db_store_name)) {
+                    that.db.createObjectStore(that.db_store_name);
+                  }
+                that.db_saved = false;
                 console.log("create success");
             };
             request.onsuccess = function(e) {
                 that.db = e.target.result;
+                if (!that.db.objectStoreNames.contains(that.db_store_name)) {
+                    that.db.createObjectStore(that.db_store_name);
+                  }
                 console.log("connect success");
-                fn();
+                if (fn) {
+                    fn();
+                }
             };
         }
         , add: function(key, args) {
-            var transaction = this.db.transaction([this.db_store_name], "readwrite");
-            var store = transaction.objectStore(this.db_store_name);
+            var store = this.db.transaction([this.db_store_name], "readwrite").objectStore(this.db_store_name);
             var request = store.add(args, key);
             request.onsuccess = function(){
-                console.log("put success");
+                console.log("add success");
             };
             request.onerror = function(event){
                 console.log(event);
             }
+
         }
         , put: function(key,args) {
             var transaction = this.db.transaction(this.db_store_name, "readwrite");
@@ -199,15 +208,16 @@ util.wrap({
         }
         , select: function(key, fn) {
             var that = this;
-            var transaction = this.db.transaction(this.db_store_name,"readwrite");
-            var store = transaction.objectStore(this.db_store_name);
+            var store = this.db.transaction([this.db_store_name],"readwrite").objectStore(this.db_store_name);
             if(key)
                 var request = store.get(key);
             else
                 var request = store.getAll();
             request.onsuccess = function() {
-                that.result= {key: key, value: request.result};
-                fn(that.result);
+                that.result[key]=request.result;
+                if(fn) {
+                    fn(that.result);
+                }
             }
         }
         , clear: function() {
@@ -222,7 +232,6 @@ util.wrap({
             var objectStore = transaction.objectStore(this.db_store_name);
             var request = objectStore.openCursor();
             var most = 0;
-            that.result = {};
             request.onsuccess = function(event) {
                 var cursor = event.target.result;
                 if (cursor) {
@@ -242,5 +251,3 @@ util.wrap({
         }
     }
 });
-
-

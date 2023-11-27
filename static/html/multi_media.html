@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <title>multi_media</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <style>
+        @media screen and (min-width: 1200px) { 
+            body{ width: 70rem; }
+            #site { z-index: -1;}
+            #itemlist { position: fixed; height: 70rem; width: 20rem; overflow: auto; left: 1rem; top: 0px; }
+            #itemlist li {
+                border: 1px solid #fff; /* 链接添加边框 */
+                background-color: rgb(231, 239, 244);
+                padding: 6px; 
+                text-decoration: none;
+                font-size: 16px; 
+                color: black; 
+                display: block; cursor: pointer; 
+            }
+            #info { position: fixed; width: 20rem; height: 70rem; overflow: auto; right: 1rem; top: 0px;}
+            #dplayer { display: inline-block; width: 100%; }
+            #items_search {
+                padding: 6px; 
+                border: 1px solid #fff;
+                background-color: rgb(231, 239, 244);
+                outline: none;
+            }
+        }
+        @media screen and (max-width: 1200px) { 
+            #site { width: 100%; display: flex; align-items:flex-start;}
+            #itemlist { height: 350px; width: 40%; overflow: auto; }
+            #itemlist li {
+                border: 1px solid #ddd; /* 链接添加边框 */
+                background-color: #f6f6f6; 
+                padding: 6px; 
+                text-decoration: none;
+                font-size: 16px; 
+                color: black; 
+                display: block; cursor: pointer; 
+            }
+            #info { width: 60%; height: 350px; overflow: auto; }
+            #dplayer { display: inline-block; }
+            #items_search {
+                padding: 6px; 
+                border: 1px solid #ddd; 
+                margin-top: 6px;
+            }
+        }
+
+
+    </style>
+</head>
+<body>
+    <div class="sites">
+        <a href="#" class="button" onclick="switch_site('epub_epubee')">epubee</a>
+        <a href="#" class="button" onclick="switch_site('m3u8_zyk2')">zyk2</a>
+        <a href="#" class="button" onclick="switch_site('m3u8_e3xd')">e3xd</a>
+        <a href="#" class="button" onclick="switch_site('m3u8_avhd101')">avhd101</a>
+        <a href="#" class="button" onclick="switch_site('m3u8_wie2')">wie2</a>
+        <a href="#" class="button" onclick="switch_site('mp3_qqmusic')">qqmusic</a>
+        <a href="#" class="button" onclick="switch_site('mp4_av')">av</a>
+        <a href="#" class="button" onclick="switch_site('mp4_dy')">dy</a>
+        <a href="#" class="button" onclick="switch_site('jpg_fuliba')">fuliba</a>
+    </div>
+    <div id="site">
+        <div id="itemlist"></div>
+        <div id="info"></div>
+    </div>
+    <div id="dplayer"></div>
+    <div>
+        <a href="#" class="button" id="prev">上一页</a>
+        <a href="#" class="button" id="next">下一页</a>
+        <a href="#" class="button" id="half">二分页</a>
+        <span id="all_page_num">总页数: 0 </span>
+        <span id="current_page_index">当前页: 0</span>
+    </div>
+    <script src="/static/js/hls.min.js"></script>
+    <script src="/static/js/DPlayer.min.js"></script>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/func.js"></script>
+    <script src="/static/js/router.js"></script>
+    <script>
+        var site_meta = '',
+            csv_arr = [],
+            page_num = 1,
+            per_page_num = 16,
+            item_num = 0,
+            disk = 'a';
+
+        const dp = new DPlayer({
+            container: document.getElementById('dplayer'),
+            video: {
+                url: '',
+                type: 'hls'
+            },
+            pluginOptions: {
+                hls: {
+                    // hls config
+                },
+            },
+        });
+
+        function csv2db(key, data, db) {
+            var csv_items = data.replace(/\r/g, '').split("\n");
+            csv_items.forEach(item => {
+                window.csv_arr.push(item.split(','));
+            });
+            
+            db.add(key, window.csv_arr);
+
+        }
+
+        function switch_site(site) {
+            window.site_meta = site.split('_');
+            var db = func.dbObject;
+            db.init({
+                db_name: "multi_media",
+                db_version: 1,
+                db_store_name: window.site_meta[0]
+            }, function() {
+                if (db.db_saved) {
+                    db.select(window.site_meta[1], function() {
+                        window.csv_arr = db.result[window.site_meta[1]];
+                        gen_itemlist(window.csv_arr);
+                        gen_pagemeta(window.csv_arr);
+                    });
+                } else {
+                    func.ajax(
+                        "get",
+                        "/temp/sites/"+site_meta[1]+".csv",
+                        function(data) {
+                            csv2db(window.site_meta[1], data, db);
+                            gen_itemlist(window.csv_arr);
+                            gen_pagemeta(window.csv_arr);
+                        }
+                    )
+                }
+            });
+        }
+
+    function gen_pagemeta(csv_arr) {
+        let all_page_num = Math.ceil(window.csv_arr.length/window.per_page_num);
+        func.$('#prev')[0].addEventListener('click', function() {
+            if (window.page_num > 1) {
+                window.page_num --;
+            } else {
+                window.page_num = all_page_num;
+            }
+            func.$("#current_page_index")[0].textContent="当前页: "+window.page_num;
+            gen_itemlist(window.csv_arr);
+        });
+        func.$('#next')[0].addEventListener('click', function() {
+            if (window.page_num < all_page_num) {
+                window.page_num ++;
+            } else {
+                window.page_num = 1;
+            }
+            func.$("#current_page_index")[0].textContent="当前页: "+window.page_num;
+            gen_itemlist(window.csv_arr);
+        });
+        func.$('#half')[0].addEventListener('click', function() {
+            if (window.page_num > 1) {
+                window.page_num = Math.ceil(window.page_num/2);
+            } else {
+                window.page_num = 1;
+            }
+            func.$("#current_page_index")[0].textContent="当前页: "+window.page_num;
+            gen_itemlist(window.csv_arr);
+        });
+        func.$('#all_page_num')[0].textContent="总页数: "+all_page_num;
+        func.$("#current_page_index")[0].textContent="当前页: "+window.page_num;
+    }
+    
+    function gen_itemlist(csv_arr) {
+        if (csv_arr.length > 1) {
+            let current_csv_arr = window.csv_arr.slice((page_num-1)*per_page_num, page_num*per_page_num);
+            let all_item = document.createElement('ul');
+            current_csv_arr.forEach(item => {
+                if (item[0]) {
+                    let vid_item = document.createElement('li');
+                    // vid_item.setAttribute('onclick', "switch_vid(dp, '"+window.site_meta[1]+"', '"+item[0]+"')");
+                    vid_item.addEventListener('click', function() {
+                        switch_vid(dp, window.site_meta[1], item[0]);
+                    })
+                    vid_item.innerText = item[1];
+                    all_item.appendChild(vid_item);
+                }
+            });
+            var itemlist = func.$('#itemlist')[0]
+            itemlist.innerHTML = '';
+            let items_search = document.createElement('input'),
+                next_page = document.createElement('label');
+            items_search.setAttribute('type', 'text');
+            items_search.setAttribute('id', 'items_search');
+            items_search.addEventListener('keyup', function(e) {my_search(e);});
+            items_search.setAttribute('placeholder', '搜索'+(csv_arr.length-1)+'项');
+            
+            itemlist.appendChild(items_search);
+            itemlist.appendChild(all_item);
+        }
+    }
+            // func.ajax(
+            //     "get",
+            //     '/temp/sites/'+site_meta[1]+".csv",
+            //     function(data) {
+            //         var csv_items = data.replace(/\r/g, '').split("\n");
+            //         csv_items.forEach(item => {
+            //             window.csv_arr.push(item.split(','));
+            //         });
+            //         if (csv_arr.length > 1) {
+            //             let all_item = document.createElement('ul');
+            //             csv_arr.forEach(element => {
+            //                 var info = element;
+            //                 if (info[0]) {
+            //                     let vid_item = document.createElement('li');
+            //                     vid_item.setAttribute('onclick', "switch_vid(dp, '"+site_meta[1]+"', '"+info[0]+"')");
+            //                     vid_item.innerText = info[1];
+            //                     all_item.appendChild(vid_item);
+            //                 }
+            //             });
+            //             var itemlist = func.$('#itemlist')[0]
+            //             itemlist.innerHTML = '';
+            //             let items_search = document.createElement('input'),
+            //                 result_num = document.createElement('label');
+            //             items_search.setAttribute('type', 'text');
+            //             items_search.setAttribute('id', 'items_search');
+            //             items_search.addEventListener('keyup', function(e) {my_search(e);});
+            //             items_search.setAttribute('placeholder', '搜索...');
+            //             result_num.textContent = "条目数："+(csv_arr.length-1);
+                        
+            //             itemlist.appendChild(items_search);
+            //             itemlist.appendChild(result_num);
+            //             itemlist.appendChild(all_item);
+            //         }
+            //     }
+            // );
+
+
+        function switch_vid(dp, site, path) {
+            func.ajax(
+                "get",
+                '/'+disk+"/"+site+"/"+path+"/info.html",
+                function(data) {
+                    cover = '<img src="/'+disk+'/'+site+'/'+path+'/cover.jpg">';
+                    func.$("#info")[0].innerHTML = cover+data;
+                }
+            );
+            dp.switchVideo(
+                {
+                    url: '/'+disk+"/"+site+"/"+path+'/hls.m3u8',
+                }
+            );
+        }
+
+        function my_search(e) {
+            if (e.key=="Enter") {
+                var input = document.getElementById('items_search');
+                csv_arr = window.csv_arr;
+
+                if (csv_arr.length > 1) {
+                    let all_item = document.createElement('ul');
+                    csv_arr.forEach(element => {
+                        var info = element.split(',');
+                        if (info[0]) {
+                            let title = '';
+                            if (window.site == 'e3xd') {
+                                title = info[4];
+                            } else {
+                                title = info[1];
+                            }
+                            if (title.search(input.value) >-1) {
+                                let vid_item = document.createElement('li');
+                                vid_item.setAttribute('onclick', "switch_vid(dp, '"+site+"', '"+info[0]+"')");
+                                vid_item.innerText = info[1]+'/'+info[3]+'/'+info[4];
+                                all_item.appendChild(vid_item);
+                                item_num += 1;
+                            }
+                        }
+                    });
+                    var itemlist = func.$('#itemlist')[0]
+                    itemlist.innerHTML = '';
+                    let items_search = document.createElement('input'),
+                        result_num = document.createElement('label');
+                    items_search.setAttribute('type', 'text');
+                    items_search.setAttribute('id', 'items_search');
+                    items_search.addEventListener('keyup', function(e) {my_search(e);});
+                    items_search.setAttribute('placeholder', '搜索...');
+                    result_num.textContent = "条目数："+(csv_arr.length-1);
+                    
+                    itemlist.appendChild(items_search);
+                    itemlist.appendChild(result_num);
+                    itemlist.appendChild(all_item);
+                    result_num.textContent = "条目数："+item_num;
+                    item_num = 0;
+                }
+            }
+        }
+
+
+
+    </script>
+</body>
+</html>
