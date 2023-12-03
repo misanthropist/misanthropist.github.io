@@ -151,7 +151,7 @@ util.wrap({
             this.db_name = args.db_name;
             this.db_version = args.db_version;
             this.db_store_name = args.db_store_name;
-            this.db_saved = true;
+            // this.db_saved = true;
             if (!window.indexedDB) {
                 window.alert("Not Support");
             }
@@ -164,14 +164,11 @@ util.wrap({
                 if (!that.db.objectStoreNames.contains(that.db_store_name)) {
                     that.db.createObjectStore(that.db_store_name);
                   }
-                that.db_saved = false;
+                // that.db_saved = false;
                 console.log("create success");
             };
             request.onsuccess = function(e) {
                 that.db = e.target.result;
-                if (!that.db.objectStoreNames.contains(that.db_store_name)) {
-                    that.db.createObjectStore(that.db_store_name);
-                  }
                 console.log("connect success");
                 if (fn) {
                     fn();
