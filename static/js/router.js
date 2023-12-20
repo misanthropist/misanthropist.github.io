@@ -1,25 +1,25 @@
 util.wrap({
     name: 'router'
     , routes: {}
-    , currentUrl: ''
-    , currentHash: ''
+    , current_url: ''
+    , current_hash: ''
     , route: function(path, callback) {
         this.routes[path] = callback || function(){};
     }
     , refresh: function() {
-        this.currentUrl = location.pathname;
-        this.currentHash = location.hash;
-        if(this.currentHash){
-            if (this.routes.hasOwnProperty(this.currentHash)) {
-                this.routes[this.currentHash]();
+        this.current_url = location.pathname;
+        this.current_hash = location.hash;
+        if (this.current_hash) {
+            if (this.routes.hasOwnProperty(this.current_hash)) {
+                this.routes[this.current_hash]();
             } else{
-                console.log(this.currentHash+"->此hash未注册")
+                console.log(this.current_hash + "->此hash未注册")
             } 
         }
-        if (this.routes.hasOwnProperty(this.currentUrl)){
-            this.routes[this.currentUrl]();
+        if (this.routes.hasOwnProperty(this.current_url)){
+            this.routes[this.current_url]();
         } else {
-            console.log(this.currentUrl+"->此链接未注册")
+            console.log(this.current_url + "->此链接未注册")
         }
     }
     , init: function() {
@@ -35,21 +35,10 @@ router.route('#a', function() {
     console.log("hi, a");
 });
 
-/* 一级页面header随机显示header.json条目*/
-function header_random() {
-    func.ajax("get", "/static/json/header.json", function(data){
-        content = JSON.parse(data);
-        name_i = Math.floor(Math.random()*content.items_name.length);
-        item_name = content.items_name[name_i];
-        content_i = Math.floor(Math.random()*content.items_content[item_name].length);
-        item_content = content.items_content[item_name][content_i];
-        item = item_content+" —— "+item_name;
-        ele = func.$("header>p")[0];
-        ele.innerHTML = item;
-    })
-}
+/* 首页header元素随机显示header.json中任一条目 */
 router.route('/', function() {
-    header_random();
+    var ele = func.$("header>p")[0];
+    func.random_item(ele, "/static/json/header.json");
 });
 
 router.route('/static/html/'+encodeURI('追寻所有社会现象的历史起源')+'.html', function () {

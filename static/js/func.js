@@ -24,6 +24,29 @@ util.wrap({
         xhr.send(data ? fd : null);
     }
     /*
+    使用CCS选择器获得元素数组
+    string => array
+    func.$('body') => [htmlbodyelement]
+    */
+    , "$": function(selector) {
+        var nodes = document.querySelectorAll.bind(document)(selector);
+        return Array.prototype.slice.call(nodes);
+    }
+    /* ele随机显示xhr_json中任一条目 */
+    , random_item: function(ele, xhr_json) {
+        this.ajax("get", xhr_json, function(data){
+            content = JSON.parse(data);
+            names = Object.keys(content);
+            name_i = Math.floor(Math.random() * names.length)
+            item_name = names[name_i];
+            item_contents = content[item_name];
+            item_contents_i = Math.floor(Math.random() * item_contents.length);
+            item_content = item_contents[item_contents_i];
+            item = item_content+" —— "+item_name;
+            ele.innerHTML = item;
+        })
+    }
+    /*
     深度优先遍历节点内所有子元素，并对每个节点调用函数。
     node => undefined
     walk_ele(document, function(node){console.log(node);}) => 深度遍历页面内所有节点并打印
@@ -35,15 +58,6 @@ util.wrap({
             walk(node, func);
             node = node.nextElementSibling;
         }
-    }
-    /*
-    使用CCS选择器获得元素数组
-    string => array
-    func.$('body') => [htmlbodyelement]
-    */
-    , "$": function(selector) {
-        var nodes = document.querySelectorAll.bind(document)(selector);
-        return Array.prototype.slice.call(nodes);
     }
     /*
     判断页面内元素是否在可见区域内
@@ -84,17 +98,6 @@ util.wrap({
             e.style[attr] = s[p];
         }
         return e;
-    }
-   /* 
-   随机在某一元素内显示数组条目，并返回这个元素
-   (string, array) => element
-   func.random_item("header>p", data.tweet) =>
-   */
-    , random_item: function(selector, arr) {
-        var first_e = func.$(selector)[0]
-          , ran_i = Math.floor(Math.random()*arr.length);
-        first_e.innerHTML = arr[ran_i];
-        return first_e;
     }
 
     /* 延时加载图片 */

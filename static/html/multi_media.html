@@ -8,12 +8,21 @@
     <title>multi_media</title>
     <link rel="stylesheet" href="/static/css/base.css">
     <style>
+        #epub_area, #epub_page, #catalog { position: relative; background-color: #8e7f6b; }
+        #epub_page {text-align: center; }
+        #left_page { position:absolute; left: 0; width: 30%; height: 100%; z-index: 99;}
+        #right_page { position:absolute; right: 0; width: 30%; height: 100%; z-index: 99;}
+        
+        #up_page { position:absolute; top: 0; width: 0; height: 0; z-index: -1;}
+        #down_page { position:absolute; bottom: 0; width: 0; height: 0; z-index: -1;}
+        
         @media screen and (min-width: 1200px) { 
             body{ width: 70rem; text-align: center;}
             #site { z-index: -1;}
-            #itemlist { position: fixed; height: 70rem; width: 20rem; overflow: auto; left: 1rem; top: 0px; }
+            #page_nav { position: fixed; left: 1rem; top: 0px;}
+            #itemlist { position: fixed; height: 70rem; width: 20rem; overflow: auto; left: 1rem; top: 8rem; }
             #itemlist li {
-                border: 1px solid #fff; /* 链接添加边框 */
+                border: 1px solid #fff;
                 background-color: rgb(231, 239, 244);
                 padding: 6px; 
                 text-decoration: none;
@@ -22,7 +31,7 @@
                 display: block; cursor: pointer; 
             }
             #info { position: fixed; width: 20rem; height: 70rem; overflow: auto; right: 1rem; top: 0px;}
-            #dplayer { display: inline-block; }
+            img { max-height: 75rem; }
             #items_search {
                 padding: 6px; 
                 border: 1px solid #fff;
@@ -34,7 +43,7 @@
             #site { width: 100%; display: flex; align-items:flex-start;}
             #itemlist { height: 350px; width: 40%; overflow: auto; }
             #itemlist li {
-                border: 1px solid #ddd; /* 链接添加边框 */
+                border: 1px solid #ddd;
                 background-color: #f6f6f6; 
                 padding: 6px; 
                 text-decoration: none;
@@ -43,7 +52,7 @@
                 display: block; cursor: pointer; 
             }
             #info { width: 60%; height: 350px; overflow: auto; }
-            #dplayer { display: inline-block; }
+            #media { display: inline-block; }
             #items_search {
                 padding: 6px; 
                 border: 1px solid #ddd; 
@@ -67,26 +76,19 @@
         <a href="#" class="button" onclick="switch_site('jpg_fuliba')">fuliba</a>
     </div>
     <div id="site">
+        <div id="page_nav"></div>
         <div id="itemlist"></div>
         <div id="info"></div>
     </div>
-    <div id="dplayer"></div>
-    <div id="page_nav"></div>
+    <div id="media"></div>
+    <script src="/static/js/jszip.min.js"></script>
+    <script src="/static/js/epub.min.js"></script>
     <script src="/static/js/hls.min.js"></script>
     <script src="/static/js/DPlayer.min.js"></script>
     <script src="/static/js/util.js"></script>
     <script src="/static/js/func.js"></script>
     <script src="/static/js/router.js"></script>
     <script>
-        // var site_meta = {saved: "false", current_page_num: "1", per_page_num: "16", disk='a'},
-        //     csv_arr = []
-            // page_num = 1,
-            // per_page_num = 16,
-            // item_num = 0,
-            // db_version = 2,
-            // disk = 'a';
-
-
         function csv2db(key, data, db) {
             var csv_items = data.replace(/\r/g, '').split("\n"),
                 csv_arr = [];
@@ -102,17 +104,18 @@
         }
 
         function switch_site(site) {
-            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "16", disk: 'a'},
+            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "16", disk: 'a', search_key: ""},
                 csv_arr = [],
                 meta = site.split("_");
             site_meta.name = meta[1];
             site_meta.type = meta[0];
             if (localStorage.getItem(site) == null) {
-                // window.site_meta.saved = "false";
                 localStorage.setItem(site, JSON.stringify(site_meta));
             } else {
                 site_meta = JSON.parse(localStorage.getItem(site));
             }
+            func.$("#media")[0].innerHTML = "";
+            func.$("#info")[0].innerHTML = "";
             var db = func.dbObject;
             db.init({
                 db_name: "multi_media",
@@ -148,38 +151,103 @@
                     b = parseInt(site_meta.per_page_num),
                     current_csv_arr = csv_arr.slice((a-1)*b, a*b),
                     all_item = document.createElement('ul');
-
                 current_csv_arr.forEach(item => {
                     if (item[0]) {
                         let li_item = document.createElement('li');
                         li_item.addEventListener('click', function() {
-                            var dp = new DPlayer({
-                                container: document.getElementById('dplayer'),
-                                video: {
-                                    url: '',
-                                    type: 'auto'
-                                },
-                                pluginOptions: {
-                                    hls: {
-                                        // hls config
-                                    },
-                                }
-                            }),
-                            item_index = current_csv_arr.indexOf(item);
+                            var item_index = current_csv_arr.indexOf(item);
                             if (site_meta.type == "m3u8") {
+                                var ele = func.$("#media")[0],
+                                    vid = document.createElement("div");
+                                ele.innerHTML = "";
+                                vid.setAttribute("id", "dplayer");
+                                ele.appendChild(vid);
+                                const dp = new DPlayer({
+                                    container: document.getElementById('dplayer'),
+                                    video: {
+                                        url: '',
+                                        type: 'hls'
+                                    }
+                                });
                                 dp.on("ended", function() {
-                                    item_index = item_index + 1;
+                                    if (item_index < site_meta.per_page_num-1) {
+                                        item_index = item_index + 1;
+                                    } else {
+                                        item_index = 0;
+                                    }
                                     switch_m3u8(dp, site_meta, current_csv_arr[item_index][0]);
                                     dp.play();
                                 });
                                 switch_m3u8(dp, site_meta, item[0]);
+                                dp.play();
                             } else if (site_meta.type == "mp4") {
+                                var ele = func.$("#media")[0],
+                                    vid = document.createElement("div");
+                                ele.innerHTML = "";
+                                vid.setAttribute("id", "dplayer");
+                                ele.appendChild(vid);
+                                const dp = new DPlayer({
+                                    container: document.getElementById('dplayer'),
+                                    video: {
+                                        url: '',
+                                        type: 'mp4'
+                                    }
+                                });
                                 dp.on("ended", function() {
-                                    item_index = item_index + 1;
+                                    if (item_index < site_meta.per_page_num-1) {
+                                        item_index = item_index + 1;
+                                    } else {
+                                        item_index = 0;
+                                    }
                                     switch_mp4(dp, site_meta, current_csv_arr[item_index][0]);
                                     dp.play();
                                 });
                                 switch_mp4(dp, site_meta, item[0]);
+                                dp.play();
+                            } else if (site_meta.type == "mp3") {
+                                func.$("#media")[0].innerHTML = "";
+                                const au = document.createElement("audio");
+                                au.addEventListener("ended", function() {
+                                    if (item_index < site_meta.per_page_num-1) {
+                                        item_index = item_index + 1;
+                                    } else {
+                                        item_index = 0;
+                                    }
+                                    switch_mp3(au, site_meta, current_csv_arr[item_index]);
+                                });
+                                func.$("#media")[0].appendChild(au);
+                                switch_mp3(au, site_meta, item);
+                            } else if (site_meta.type == "jpg") {
+                                var ele = func.$("#media")[0];
+                                ele.innerHTML = '';
+                                switch_jpg(ele, site_meta, item);
+                            } else if (site_meta.type == "epub") {
+                                var ele = func.$("#media")[0],
+                                    eb = document.createElement("div");
+                                eb.innerHTML = `<div id="epub_setting">
+    <a href="#color_mode" id="color_mode">纯白</a>
+    <a href="#switch_page_mode" id="switch_page_mode">上下翻页</a>
+    <a href="#progress_bar" id="progress_bar">进度</a>
+    <input id="full-search" type="text" name="full-search" placeholder="搜索">
+    <div id="search-result"></div>
+    <br>
+</div>
+
+
+<div id="epub_area">
+    <a href="#epub_area"  id="left_page"></a>
+    <a href="#epub_area"  id="right_page"></a>
+    <a href="#epub_area"  id="up_page"></a>
+    <a href="#epub_area"  id="down_page"></a>
+</div>
+<div id="epub_page">
+    <a href="#epub_area" id="prev">上一页</a>
+    <a href="#epub_area" id="next">下一页</a>
+</div>
+<div id="catalog"></div>`
+                                ele.innerHTML = "";
+                                ele.appendChild(eb);
+                                switch_epub(eb, site_meta, item);
                             }
                         })
                         li_item.innerText = item[1];
@@ -188,12 +256,11 @@
                 });
                 var itemlist = func.$('#itemlist')[0]
                 itemlist.innerHTML = '';
-                let items_search = document.createElement('input'),
-                    next_page = document.createElement('label');
+                let items_search = document.createElement('input');
                 items_search.setAttribute('type', 'text');
                 items_search.setAttribute('id', 'items_search');
-                items_search.addEventListener('keyup', function(e) {my_search(e);});
-                items_search.setAttribute('placeholder', '搜索'+csv_arr.length+'项');
+                items_search.addEventListener('keyup', function(e) {my_search(e, csv_arr, site_meta);});
+                items_search.setAttribute('placeholder', '搜索'+site_meta.search_key+csv_arr.length+'项');
                 
                 itemlist.appendChild(items_search);
                 itemlist.appendChild(all_item);
@@ -208,7 +275,8 @@
             half = document.createElement('a'),
             page_count = document.createElement("span"),
             page_index = document.createElement("span"),
-            clear_meta = document.createElement('a');
+            clear_meta = document.createElement('a'),
+            nav_br = document.createElement('br');
         prev.setAttribute('href', '#');
         prev.setAttribute('class', 'button');
         prev.textContent = "上一页"
@@ -236,7 +304,7 @@
             }
             page_index.textContent="当前页: "+site_meta.current_page_num;
             localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);;
+            gen_itemlist(csv_arr, site_meta);
         });
         next.addEventListener('click', function() {
             if (site_meta.current_page_num < all_page_num) {
@@ -246,7 +314,7 @@
             }
             page_index.textContent="当前页: "+site_meta.current_page_num;
             localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);;
+            gen_itemlist(csv_arr, site_meta);
         });
         half.addEventListener('click', function() {
             if (site_meta.current_page_num > 1) {
@@ -256,58 +324,22 @@
             }
             page_index.textContent="当前页: "+site_meta.current_page_num;
             localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);;
+            gen_itemlist(csv_arr, site_meta);
         });
         page_count.textContent="总页数: "+all_page_num+' ';
         page_index.textContent="当前页: "+site_meta.current_page_num+' ';
         
+
         page_nav.innerHTML = '';
         page_nav.appendChild(prev);
         page_nav.appendChild(next);
         page_nav.appendChild(half);
+        page_nav.appendChild(nav_br);
         page_nav.appendChild(page_count);
         page_nav.appendChild(page_index);
         page_nav.appendChild(clear_meta);
     }
     
-
-            // func.ajax(
-            //     "get",
-            //     '/temp/sites/'+site_meta[1]+".csv",
-            //     function(data) {
-            //         var csv_items = data.replace(/\r/g, '').split("\n");
-            //         csv_items.forEach(item => {
-            //             window.csv_arr.push(item.split(','));
-            //         });
-            //         if (csv_arr.length > 1) {
-            //             let all_item = document.createElement('ul');
-            //             csv_arr.forEach(element => {
-            //                 var info = element;
-            //                 if (info[0]) {
-            //                     let vid_item = document.createElement('li');
-            //                     vid_item.setAttribute('onclick', "switch_m3u8(dp, '"+site_meta[1]+"', '"+info[0]+"')");
-            //                     vid_item.innerText = info[1];
-            //                     all_item.appendChild(vid_item);
-            //                 }
-            //             });
-            //             var itemlist = func.$('#itemlist')[0]
-            //             itemlist.innerHTML = '';
-            //             let items_search = document.createElement('input'),db_saved
-            //                 result_num = document.createElement('label');
-            //             items_search.setAttribute('type', 'text');
-            //             items_search.setAttribute('id', 'items_search');
-            //             items_search.addEventListener('keyup', function(e) {my_search(e);});
-            //             items_search.setAttribute('placeholder', '搜索...');
-            //             result_num.textContent = "条目数："+(csv_arr.length-1);
-                        
-            //             itemlist.appendChild(items_search);
-            //             itemlist.appendChild(result_num);
-            //             itemlist.appendChild(all_item);
-            //         }
-            //     }
-            // );
-
-
         function switch_m3u8(dp, site_meta, path) {
             func.ajax(
                 "get",
@@ -340,46 +372,257 @@
             );
         }
 
-        function my_search(e) {
+        function switch_mp3(au, site_meta, item) {
+            var song_meta = item[1],
+                song_path = item[0];
+            au.setAttribute("src", '/'+site_meta.disk+'/'+site_meta.name+'/'+song_path+'.mp3');
+            au.setAttribute("controls", "true");
+            au.setAttribute("autoplay", "true");
+            func.ajax(
+                "get",
+                '/'+site_meta.disk+"/"+site_meta.name+"/"+song_path+".lrc",
+                function(data) {
+                    data = song_meta + "<br>" + data.replace(/\n/g, "<br>");
+                    cover = '<img src="/'+site_meta.disk+'/'+site_meta.name+'/'+song_path+'.jpg">';
+                    func.$("#info")[0].innerHTML = cover+data;
+                }
+            );
+        }
+        
+        function switch_jpg(ele, site_meta, item) {
+            var pic_num = item[2]
+                path = item[0],
+                name = '/'+site_meta.disk+'/'+site_meta.name+'/'+path+'/'+path+'_',
+                img = document.createElement("img");
+            func.ajax(
+                "get",
+                '/'+site_meta.disk+"/"+site_meta.name+"/"+path+'/'+path+".html",
+                function(data) {
+                    cover = '<img src="/'+site_meta.disk+'/'+site_meta.name+'/'+path+'/'+path+'.jpg">';
+                    func.$("#info")[0].innerHTML = cover+data;
+                }
+            );
+            img.setAttribute("src", name+'1.jpg');
+            img.setAttribute("data-src", "1")
+            img.addEventListener('click', function() {
+                var num = parseInt(img.getAttribute("data-src"));
+                num = num + 1;
+                if (num > pic_num) {
+                    num = 1;
+                }
+            img.setAttribute("src", name+num+'.jpg');
+            img.setAttribute("data-src", num)
+            })
+            ele.appendChild(img);
+        }
+
+        function switch_epub(ele, site_meta, item) {
+            var book = ePub('/'+site_meta.disk+'/'+site_meta.name+'/'+item[0]+'/'+item[1]+".epub"),
+                rendition = book.renderTo("epub_area", {
+                    manager: "continuous",
+                    flow: "paginated",
+                    width: "100%"
+                });
+            rendition.display();
+
+            //显示图书目录
+            book.loaded.navigation.then(function(toc) {
+                toc.forEach(function(chapter) {
+                    var nav_a = document.createElement("a");
+                    nav_a.setAttribute("href", "#epub_area");
+                    nav_a.setAttribute("aria-data", chapter.href);
+                    nav_a.textContent = chapter.label + "|";
+                    nav_a.addEventListener("click", function() {
+                        rendition.display(chapter.href);
+                    })
+                    func.$("#catalog")[0].appendChild(nav_a);
+                });
+            });
+            // 翻页快捷键
+            func.$("#prev")[0].addEventListener("click", function() {
+                rendition.prev();
+            });
+            func.$("#next")[0].addEventListener("click", function() {
+                rendition.next();
+            });
+            func.$("#left_page")[0].addEventListener("click", function() {
+                rendition.prev();
+            });
+            func.$("#right_page")[0].addEventListener("click", function() {
+                rendition.next();
+            });
+            func.$("#up_page")[0].addEventListener("click", function() {
+                rendition.prev();
+            });
+            func.$("#down_page")[0].addEventListener("click", function() {
+                rendition.next();
+            });
+            var keyListener = function(e){
+                if ((e.keyCode || e.which) == 37) {
+                    rendition.prev();
+                }
+                if ((e.keyCode || e.which) == 39) {
+                    rendition.next();
+                }
+            };
+
+            document.addEventListener("keyup", keyListener, false);
+                
+            let LR = true
+                lr_display_setting = {
+                    "width": "30%",
+                    "height": "100%",
+                    "z-index": "99"
+                },
+                ud_display_setting = {
+                    "width": "100%",
+                    "height": "30%",
+                    "z-index": "99"
+                },
+                hide_setting = {
+                    "width": "0",
+                    "height": "0",
+                    "z-index": "-1"
+                };
+            func.$("#switch_page_mode")[0].addEventListener("click", function(e) {
+                if (!LR) {
+                    func.css(func.$("#left_page")[0], lr_display_setting);
+                    func.css(func.$("#right_page")[0], lr_display_setting);
+                    func.css(func.$("#up_page")[0], hide_setting);
+                    func.css(func.$("#down_page")[0], hide_setting);
+                    e.target.text = "上下翻页";
+                    LR =true;
+                } else {
+                    func.css(func.$("#right_page")[0], hide_setting);
+                    func.css(func.$("#left_page")[0], hide_setting);
+                    func.css(func.$("#up_page")[0], ud_display_setting);
+                    func.css(func.$("#down_page")[0], ud_display_setting);
+                    e.target.text = "左右翻页";
+                    LR =false;
+                }
+            });
+            //图书背景
+            let white = false;
+            func.$("#color_mode")[0].addEventListener("click", function(e) {
+                if (!white) {
+                    func.css(func.$("#epub_area")[0], {"background-color": "#fff"});
+                    func.css(func.$("#epub_page")[0], {"background-color": "#fff"});
+                    func.css(func.$("#catalog")[0], {"background-color": "#fff"});
+                    e.target.text = "暗黄";
+                    white = true;
+                } else {
+                    func.css(func.$("#epub_area")[0], {"background-color": "#8e7f6b"});
+                    func.css(func.$("#epub_page")[0], {"background-color": "#8e7f6b"});
+                    func.css(func.$("#catalog")[0], {"background-color":"#8e7f6b"});
+                    e.target.text = "纯白";
+                    white = false;
+                }
+            });
+            //存储进度
+            var bar = func.$("#progress_bar")[0],
+                last_progress_cfi = '',
+                metadata = '',
+                total = '';
+
+            book.ready.then(function() {
+                metadata = book.package.metadata;
+                const stored = localStorage.getItem(metadata.title + '-locations');
+                console.log('metadata:', metadata);
+                if (stored) {
+                    return book.locations.load(stored);
+                } else {
+                    return book.locations.generate(1024); 
+                }
+            }).then(function() { 
+                localStorage.setItem(metadata.title + '-locations', book.locations.save());
+            }).then(function() {
+                
+                last_progress_cfi = localStorage.getItem(metadata.title + '-progress-cfi')
+                total = book.locations.total
+                if (last_progress_cfi) {
+                    let progress = book.locations.locationFromCfi(last_progress_cfi)+'/'+total;
+                    bar.textContent="进度|"+progress;
+                    rendition.display(last_progress_cfi);
+                }
+            });
+            bar.addEventListener("click", function(e) {
+                let current_cfi = rendition.location.start.cfi,
+                    progress = book.locations.locationFromCfi(current_cfi)+'/'+total;
+                e.target.text="进度|"+ progress;
+                localStorage.setItem(metadata.title + '-progress-cfi', current_cfi);
+
+            });
+            rendition.on('relocated', function(location) {
+                let current_cfi = location.start.cfi,
+                    progress = book.locations.locationFromCfi(current_cfi)+'/'+total;
+                bar.textContent="进度|"+ progress;
+                localStorage.setItem(metadata.title + '-progress-cfi', current_cfi);
+            });
+            //全文搜索
+            var doSearch = (q) => {
+                return Promise.all(book.spine.spineItems.map(item => 
+                    item
+                        .load(book.load.bind(book))
+                        .then(item.find.bind(item, q))
+                        .finally(item.unload.bind(item))
+                )).then(results => Promise.resolve([].concat.apply([], results)))
+            }
+            var search = (q) => {
+                doSearch(q).then((result) => {
+                    let p = document.createElement("p"),
+                        num = result.length;
+                    func.$('#search-result')[0].innerHTML = '';
+                    p.textContent = "共"+num + "条";
+                    if (num < 25 && num > 0) {
+                        result.forEach((item) => {
+                            let a = document.createElement("a");
+                            a.setAttribute("href", "#epub_area");
+                            a.setAttribute("style", "display: block;");
+                            a.setAttribute("ref", item.cfi);
+                            a.textContent = item.excerpt.replaceAll(q, `<strong>${q}</strong>`);
+                            a.addEventListener("click", function() {
+                                    rendition.display(item.cfi);
+                                    rendition.annotations.highlight(item.cfi);
+                            });
+                            p.appendChild(a);
+                            let br = document.createElement("br");
+                            p.appendChild(br);
+                            func.$('#search-result')[0].appendChild(p);
+                        });
+                    } else if (num > 25) {
+                        func.$('#search-result')[0].appendChild(p);
+                    }
+                });
+            }
+
+            func.$("#full-search")[0].addEventListener("keyup", function (event) {
+                event = event || window.event;
+                q = func.$("#full-search")[0].value;
+                if (event.keyCode == 13 && q !== "") {
+                    search(q);
+                }
+            }, false);
+        }
+
+
+        function my_search(e, csv_arr, site_meta) {
             if (e.key=="Enter") {
-                var input = document.getElementById('items_search');
-                csv_arr = window.csv_arr;
+                var input = document.getElementById('items_search'),
+                    current_csv_arr = [];
 
                 if (csv_arr.length > 1) {
                     let all_item = document.createElement('ul');
-                    csv_arr.forEach(element => {
-                        var info = element.split(',');
-                        if (info[0]) {
-                            let title = '';
-                            if (window.site == 'e3xd') {
-                                title = info[4];
-                            } else {
-                                title = info[1];
-                            }
-                            if (title.search(input.value) >-1) {
-                                let vid_item = document.createElement('li');
-                                vid_item.setAttribute('onclick', "switch_m3u8(dp, '"+site+"', '"+info[0]+"')");
-                                vid_item.innerText = info[1]+'/'+info[3]+'/'+info[4];
-                                all_item.appendChild(vid_item);
-                                item_num += 1;
-                            }
+                    csv_arr.forEach(item => {
+                        var title = item[1];
+                        if (title.search(input.value) >-1) {
+                            current_csv_arr.push(item);
                         }
                     });
-                    var itemlist = func.$('#itemlist')[0]
-                    itemlist.innerHTML = '';
-                    let items_search = document.createElement('input'),
-                        result_num = document.createElement('label');
-                    items_search.setAttribute('type', 'text');
-                    items_search.setAttribute('id', 'items_search');
-                    items_search.addEventListener('keyup', function(e) {my_search(e);});
-                    items_search.setAttribute('placeholder', '搜索...');
-                    result_num.textContent = "条目数："+(csv_arr.length-1);
-                    
-                    itemlist.appendChild(items_search);
-                    itemlist.appendChild(result_num);
-                    itemlist.appendChild(all_item);
-                    result_num.textContent = "条目数："+item_num;
-                    item_num = 0;
+                    site_meta.all_item_num = current_csv_arr.length;
+                    site_meta.current_page_num = 1;
+                    site_meta.search_key = input.value;
+                    gen_itemlist(current_csv_arr, site_meta);
+                    gen_pagemeta(current_csv_arr, site_meta);
                 }
             }
         }
