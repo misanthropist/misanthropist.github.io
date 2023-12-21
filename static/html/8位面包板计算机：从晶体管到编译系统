@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <meta name="author" content="doudou">
+    <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
+    <title>用面包板手搓8位计算机</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+</head>
+<body>
+    <h1>用面包板手搓8位计算机</h1>
+    <p>计算机渗透到社会生活中的方方面面，从身边随处可见的物理设备，如智能手机、四旋翼飞行器、Xbox游戏机、汽车等，到触手可得的信息服务，如网络购物、电子书阅读、资讯浏览、博客写作、电子游戏、出行导航等，都离不开计算机技术的应用。为了更好地认识这个世界，我们每个人都需要有能力自己动手制作一个计算机。</p>    <h1>C、JavaScript和Python三种语言特性及应用</h1>
+    <h2>C语言</h2>
+    <h3>历史</h3>
+    <p>1972年，丹尼斯·里奇与肯·汤普逊为了更好地移植和开发UNIX操作系统，以B语言为基础，在贝尔实验室设计、开发出C语言。</p>
+    <p>1983年，美国国家标准协会组成了一个委员会，X3J11，为了创立C的一套标准。经过漫长而艰苦的过程，该标准于1989年完成，并在作为ANSI X3.159-1989 "Programming Language C"正式生效。</p>
+    <h3>应用</h3>
+    <h4>常用命令</h4>
+    <h5>cmd 命令</h5>
+    <h6>网络命令</h6>
+    <pre class="code"># 查看所有保存的wifi密码
+netsh wlan show profile * key=clear
+# 卸载安卓应用
+adb shell
+pm uninstall --user 0 "应用包名"
+    </pre>
+    <h5>linux 命令</h5>
+    <pre class="code"># aes128解密
+openssl aes-128-cbc -d -in {} -out {} -nosalt -iv f0d331df7ba042c907a2412c9f0e4817 -K a17d2e4acb01ef2571e6d55c862e4a24"
+# 合并hls
+ffmpeg -allowed_extensions ALL -i index.m3u8 -c copy {}
+    </pre>
+    <h2>JavaScript</h2>
+    <h3>历史</h3>
+    <p>1995年，Netscape公司为了在浏览器领域胜过微软，推出了一种语言，可以在客户端就能完成表单的简单验证。这种语言后来被命名为JavaScript，与此同时，微软也推出自己的类似脚本语言JScript。1997年，以JavaScript1.1为蓝本的建议被提交给ECMA，由此ECMAScript诞生，这个标准成各种JavaScript实现的基础。</p>
+    <p>2009年，ECMAScript第五版，即规范ECMA-262第五版发布。相比于1997年的第一版，这一版本增加了正则表达式、JSON对象等特性的支持。</p>
+    <h3>基本概念</h3>
+    <p>ECMAScript只规定了JavaScript这门语言的最基本的内容，如语法、关键字、保留字、变量、数据类型、操作符、语句、函数，而对于与Web浏览器联系紧密的DOM和BOM没有涉及。因此众多宿主环境，如Node、Adobe Flash、Autojs等在实现ECMCScript标准的同时，可以有自己的扩展。</p>
+    <p>总的来说，JavaScript是一种专为网页交互而设计的脚本语言，主要由两个部分组成。一个是ECMAScript，有ECMA-262规范定义，提供核心语言功能；另一个则是扩展功能，用来提供与宿主环境交互的方法和接口。</p>
+    <h3>应用</h3>
+    <h4>网页三剑客</h4>
+    <table>
+        <caption>HTML标签</caption>
+        <thead>
+            <tr>
+                <th>类别</th>
+                <th>标签</th>
+                <th>描述</th>
+            </tr>
+        </thead>
+        <tbody>
+            <tr>
+                <th rowspan="9">结构</th>
+                <td>&lt;!DOCTYPE&gt;</td>
+                <td>定义文档类型</td>
+            </tr>
+            <tr>
+                <td>&lt;html&gt;</td>
+                <td>定义一个 HTML 文档</td>
+            </tr>
+            <tr>
+                <td>&lt;body&gt;</td>
+                <td>定义文档的主体</td>
+            </tr>
+            <tr>
+                <td>&lt;div&gt;</td>
+                <td>定义文档中的块节</td>
+            </tr>
+            <tr>
+                <td>&lt;span&gt;</td>
+                <td>定义文档中的行内节</td>
+            </tr>
+            <tr>
+                <td>&lt;header&gt;
+            </td>
+                <td>定义一个文档头部部分</td>
+            </tr>
+            <tr>
+                <td>&lt;main&gt;</td>
+                <td>定义文档的主体部分</td>
+            </tr>
+            <tr>
+                <td>&lt;section&gt;</td>
+                <td>定义了文档的某个区域</td>
+            </tr>
+            <tr>
+                <td>&lt;footer&gt;</td>
+                <td>定义一个文档底部</td>
+            </tr>
+            <tr>
+                <th rowspan="6">元信息</th>
+                <td>&lt;head&gt;</td>
+                <td>定义关于文档的信息</td>
+            <tr>
+                <td>&lt;meta&gt;</td>
+                <td>定义关于 HTML 文档的元信息</td>
+            </tr>
+            </tr>
+            <tr>
+                <td>&lt;title&gt;</td>
+                <td>为文档定义一个标题 </td>
+            </tr>
+            <tr>
+                <td>&lt;link&gt;</td>
+                <td>定义文档与外部资源的关系</td>
+            </tr>
+            <tr>
+                <td>&lt;style&gt;</td>
+                <td>定义文档的样式信息</td>
+            </tr>
+            <tr>
+                <td>&lt;script&gt;</td>
+                <td>定义客户端脚本</td>
+            </tr>
+            <tr>
+                <th rowspan="6">文本</th>
+                <td>&lt;h1&gt; to &lt;h6&gt;</td>
+                <td>定义 HTML 标题</td>
+            </tr>
+            <tr>
+                <td>&lt;p&gt;</td>
+                <td>定义一个段落</td>
+            </tr>
+            <tr>
+                <td>&lt;a&gt;</td>
+                <td>定义一个链接</td>
+            </tr>
+            <tr>
+                <td>&lt;pre&gt;</td>
+                <td>定义预格式文本</td>
+            </tr>
+            <tr>
+                <td>&lt;br&gt;</td>
+                <td>定义简单的折行</td>
+            </tr>
+            <tr>
+                <td>&lt;hr&gt;</td>
+                <td>定义水平线</td>
+            </tr>
+            <tr>
+                <th rowspan="4">表单</th>
+                <td>&lt;form&gt;</td>
+                <td>定义一个 HTML 表单，用于用户输入</td>
+            </tr>
+            <tr>
+                <td>&lt;label&gt;</td>
+                <td>定义单行 input 元素的标注</td>
+            </tr>
+            <tr>
+                <td>&lt;input&gt;</td>
+                <td>定义一个输入控件</td>
+            </tr>
+            <tr>
+                <td>&lt;textarea&gt;</td>
+                <td>定义多行的文本输入控件</td>
+            </tr>
+            <tr>
+                <th rowspan="4">多媒体</th>
+                <td>&lt;img&gt;</td>
+                <td>定义图像</td>
+            </tr>
+            <tr>
+                <td>&lt;canvas&gt;</td>
+                <td>通过脚本来绘制图形</td>
+            </tr>
+            <tr>
+                <td>&lt;audio&gt;</td>
+                <td>定义声音</td>
+            </tr>
+            <tr>
+                <td>&lt;video&gt;</td>
+                <td>定义视频</td>
+            </tr>
+            <tr>
+                <th rowspan="3">列表</th>
+                <td>&lt;ul&gt;</td>
+                <td>定义一个无序列表</td>
+            </tr>
+            <tr>
+                <td>&lt;ol&gt;</td>
+                <td>定义一个有序列表</td>
+            </tr>
+            <tr>
+                <td>&lt;li&gt;</td>
+                <td>定义一个列表项</td>
+            </tr>
+            <tr>
+                <th rowspan="8">表格</th>
+                <td>&lt;table&gt;</td>
+                <td>定义一个表格</td>
+            </tr>
+            <tr>
+                <td>&lt;caption&gt;</td>
+                <td>定义表格标题</td>
+            </tr>
+            <tr>
+                <td>&lt;th&gt;</td>
+                <td>定义表格中的表头单元格</td>
+            </tr>
+            <tr>
+                <td>&lt;tr&gt;</td>
+                <td>定义表格中的行</td>
+            </tr>
+            <tr>
+                <td>&lt;td&gt;</td>
+                <td>定义表格中的单元</td>
+            </tr>
+            <tr>
+                <td>&lt;thead&gt;</td>
+                <td>定义表格中的表头内容</td>
+            </tr>
+            <tr>
+                <td>&lt;tbody&gt;</td>
+                <td>定义表格中的主体内容</td>
+            </tr>
+            <tr>
+                <td>&lt;tfoot&gt;</td>
+                <td>定义表格中的表注内容（脚注）</td>
+            </tr>
+            <tfoot>
+                <tr>
+                    <td colspan="3">附录：仅收录常用的标签</td>
+                </tr>
+            </tfoot>
+        </tbody>
+    </table>
+    <table>
+        <caption>CSS标签</caption>
+        <thead>
+            <tr>
+                <td>类别</td>
+                <td>标签</td>
+                <td>描述</td>
+            </tr>
+        </thead>
+    </table>
+    <h2>Python</h2>
+    <h3>历史</h3>
+    <p>1991年，吉多·范罗苏姆为了开发出一种简洁、易读、对人类友好的程序语言，创造出Python语言。</p>
+    <p>2000年，Python 2.0发布，引入了列表推导式。</p>
+    <p>2008年，Python 3.0发布，这一版本对语言做了较大修改而不能完全向后兼容。</p>
+    <h3>应用</h3>
+    <h4>数据获取</h4>
+    <h4>数据分析</h4>
+    <p>数据分析三剑客numpy、pandas、matplotlib。</p>
+    <h4>数据展示</h4>
+    <script src="/static/js/util.js"></script>
+    <script src="/static/js/func.js"></script>
+    <script src="/static/js/router.js"></script>
+</body>
+</html>

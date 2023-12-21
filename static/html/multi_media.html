@@ -125,6 +125,8 @@
                 if (site_meta.saved == "true") {
                     db.select(site_meta.name, function() {
                         csv_arr = db.result[site_meta.name];
+                        site_meta.all_item_num = csv_arr.length;
+                        site_meta.search_key = "";
                         gen_itemlist(csv_arr, site_meta);
                         gen_pagemeta(csv_arr, site_meta);
                     });
@@ -247,7 +249,7 @@
 <div id="catalog"></div>`
                                 ele.innerHTML = "";
                                 ele.appendChild(eb);
-                                switch_epub(eb, site_meta, item);
+                                switch_epub("epub_area", site_meta, item);
                             }
                         })
                         li_item.innerText = item[1];
@@ -416,9 +418,20 @@
             ele.appendChild(img);
         }
 
-        function switch_epub(ele, site_meta, item) {
+        function switch_epub(render_ele_id, site_meta, item) {
+            func.ajax(
+                "get",
+                "/static/json/header.json",
+                function(data) {
+                    let cover = '<img src="/'+site_meta.disk+'/'+site_meta.name+'/'+item[0]+'/'+item[1]+'.jpg">',
+                        content = JSON.parse(data)[item[0]+"_"+item[1]],
+                        text = JSON.stringify(content);
+                    
+                    func.$("#info")[0].innerHTML = cover+text;
+                }
+            );
             var book = ePub('/'+site_meta.disk+'/'+site_meta.name+'/'+item[0]+'/'+item[1]+".epub"),
-                rendition = book.renderTo("epub_area", {
+                rendition = book.renderTo(render_ele_id, {
                     manager: "continuous",
                     flow: "paginated",
                     width: "100%"
@@ -521,23 +534,27 @@
             //存储进度
             var bar = func.$("#progress_bar")[0],
                 last_progress_cfi = '',
+                last_progress_cfi_name = item[0]+"_"+item[1] + '-progress-cfi',
+                all_locations = item[0]+"_"+item[1] + '-all-locations',
+                site_meta_key = site_meta.type+"_"+site_meta.name,
+                book_comment = item[0]+"_"+item[1]+"-comment",
                 metadata = '',
                 total = '';
 
             book.ready.then(function() {
                 metadata = book.package.metadata;
-                const stored = localStorage.getItem(metadata.title + '-locations');
-                console.log('metadata:', metadata);
+                const stored = site_meta[all_locations];
                 if (stored) {
                     return book.locations.load(stored);
                 } else {
                     return book.locations.generate(1024); 
                 }
-            }).then(function() { 
-                localStorage.setItem(metadata.title + '-locations', book.locations.save());
+            }).then(function() {
+                site_meta[all_locations] = book.locations.save()
+                localStorage.setItem(site_meta_key, JSON.stringify(site_meta));
             }).then(function() {
                 
-                last_progress_cfi = localStorage.getItem(metadata.title + '-progress-cfi')
+                last_progress_cfi = site_meta[last_progress_cfi_name]
                 total = book.locations.total
                 if (last_progress_cfi) {
                     let progress = book.locations.locationFromCfi(last_progress_cfi)+'/'+total;
@@ -549,14 +566,16 @@
                 let current_cfi = rendition.location.start.cfi,
                     progress = book.locations.locationFromCfi(current_cfi)+'/'+total;
                 e.target.text="进度|"+ progress;
-                localStorage.setItem(metadata.title + '-progress-cfi', current_cfi);
+                site_meta[last_progress_cfi_name] = current_cfi;
+                localStorage.setItem(site_meta_key, JSON.stringify(site_meta));
 
             });
             rendition.on('relocated', function(location) {
                 let current_cfi = location.start.cfi,
                     progress = book.locations.locationFromCfi(current_cfi)+'/'+total;
                 bar.textContent="进度|"+ progress;
-                localStorage.setItem(metadata.title + '-progress-cfi', current_cfi);
+                site_meta[last_progress_cfi_name] = current_cfi;
+                localStorage.setItem(site_meta_key, JSON.stringify(site_meta));
             });
             //全文搜索
             var doSearch = (q) => {
@@ -602,6 +621,31 @@
                     search(q);
                 }
             }, false);
+
+            //添加书评
+            rendition.on("selected", function(cfiRange, contents) {
+                var comment = document.createElement("textarea"),
+                    bt = document.createElement("a"),
+                    info = func.$("#info")[0],
+                    info_content = info.innerHTML;
+                bt.setAttribute("class", "button");
+                bt.setAttribute("href", "#");
+                bt.textContent = "保存";
+                bt.addEventListener("click", function() {
+                    if (site_meta[book_comment] !== undefined) {
+                        site_meta[book_comment].push(cfiRange+": "+comment.value);
+                    } else {
+                        site_meta[book_comment] = [];
+                        site_meta[book_comment].push(cfiRange+": "+comment.value);
+
+                    }
+                    localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
+                    info.innerHTML = info_content;
+                });
+                info.innerHTML = "";
+                info.appendChild(comment);
+                info.appendChild(bt);
+            });
         }
 
 
