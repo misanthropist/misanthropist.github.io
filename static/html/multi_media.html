@@ -74,6 +74,7 @@
         <a href="#" class="button" onclick="switch_site('mp4_av')">av</a>
         <a href="#" class="button" onclick="switch_site('mp4_dy')">dy</a>
         <a href="#" class="button" onclick="switch_site('jpg_fuliba')">fuliba</a>
+        <a href="#" class="button" onclick="switch_site('pdf_pdfbook')">pdfbook</a>
     </div>
     <div id="site">
         <div id="page_nav"></div>
@@ -81,6 +82,8 @@
         <div id="info"></div>
     </div>
     <div id="media"></div>
+    <script src="/static/js/pdf.js"></script>
+    <script src="/static/js/pdf.worker.js"></script>
     <script src="/static/js/jszip.min.js"></script>
     <script src="/static/js/epub.min.js"></script>
     <script src="/static/js/hls.min.js"></script>
@@ -250,6 +253,8 @@
                                 ele.innerHTML = "";
                                 ele.appendChild(eb);
                                 switch_epub("epub_area", site_meta, item);
+                            } else if (site_meta.type == "pdf") {
+                                switch_pdf(site_meta, item);
                             }
                         })
                         li_item.innerText = item[1];
@@ -648,6 +653,84 @@
             });
         }
 
+        function switch_pdf(site_meta, item) {
+            var canvas = document.createElement("canvas"),
+                prev = document.createElement("a"),
+                next = document.createElement("a"),
+                pdf_div = document.createElement("div"),
+                media = func.$("#media")[0],
+                loadingTask = pdfjsLib.getDocument("/a/"+site_meta.name+"/"+item[0]+".pdf"),
+                pageRendering = true,
+                page_num = 1,
+                max_width = media.clientWidth,
+                info = func.$("#info")[0];
+            prev.setAttribute("class", "button");
+            prev.textContent = "上一页";
+            next.setAttribute("class", "button");
+            next.textContent = "下一页";
+            prev.addEventListener("click", function() {
+                var max_page_num = 1;
+                loadingTask.promise.then(function(pdfDoc_) {
+                    max_page_num = pdfDoc_.numPages;
+                    if (page_num <= 1) {
+                        page_num = max_page_num;
+                        display_pdf(loadingTask, canvas, page_num);
+                    } else {
+                        page_num --;
+                        display_pdf(loadingTask, canvas, page_num);
+                    }
+                });
+            })
+
+            next.addEventListener("click", function() {
+                var max_page_num = 1;
+                loadingTask.promise.then(function(pdfDoc_) {
+                    max_page_num = pdfDoc_.numPages;
+                    if (page_num >= max_page_num) {
+                        page_num = 1;
+                        display_pdf(loadingTask, canvas, page_num, max_width);
+                    } else {
+                        page_num ++;
+                        display_pdf(loadingTask, canvas, page_num, max_width);
+                    }
+                });
+            })
+            display_pdf(loadingTask, canvas, page_num);
+            
+            pdf_div.appendChild(canvas);
+            info.innerHTML = "<h2>"+item[1]+"</h2>";
+            info.appendChild(prev);
+            info.appendChild(next);
+            media.appendChild(pdf_div);
+
+        }
+
+        function display_pdf(loadingTask, canvas, page_num) {
+            var ctx = canvas.getContext('2d');
+            loadingTask.promise.then(function(pdfDoc_) {
+                pdfDoc = pdfDoc_;
+                pdfDoc.getPage(page_num).then(function(page) {
+                    var viewport = page.getViewport({scale: 1}),
+                        outputScale = 1;
+
+                    canvas.height = Math.floor(viewport.height * outputScale);
+                    canvas.width = Math.floor(viewport.width * outputScale);
+                    var transform = outputScale !== 1 ? [outputScale, 0, 0, outputScale, 0, 0] : null;
+                    // Render PDF page into canvas context
+                    var renderContext = {
+                        canvasContext: ctx,
+                        transform: transform,
+                        viewport: viewport
+                    };
+                    var renderTask = page.render(renderContext);
+
+                    // Wait for rendering to finish
+                    renderTask.promise.then(function() {
+                        pageRendering = false;
+                    });
+                });
+            });
+        }
 
         function my_search(e, csv_arr, site_meta) {
             if (e.key=="Enter") {

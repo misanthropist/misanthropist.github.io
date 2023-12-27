@@ -4,6 +4,7 @@ import re
 from pathlib import Path
 import hashlib
 import os
+import subprocess
 
 def dump_csv(data, path, mode="w"):
     with open(path, mode, encoding='utf-8', newline="") as csvfile:
@@ -23,6 +24,15 @@ def str2md5(str):
     md.update(str.encode("utf-8"))
     str_id = md.hexdigest()
     return str_id
+
+def get_format_info(filename):
+    command = '''ffmpeg -i "{}" -hide_banner'''.format(filename)
+    command
+    ffmpeger = subprocess.Popen(command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
+    info = str(ffmpeger.stderr.read())
+    video_info = re.match(r'.*?Video: (.*?) ', info.replace('\n', '')).groups()
+    audio_info = re.match(r'.*?Audio: (.*?) ', info.replace('\n', '')).groups()
+    return (video_info[0], audio_info[0])
 
 def clean_m3u8(site):
     site = Path('/mnt/z/') / site
@@ -131,6 +141,21 @@ def clean_epubee():
             if f.suffix == ".epub":
                 data.append([n1, f.stem])
     dump_csv(data, site / "epubee.csv")
+    
+
+def clean_vid():
+    site = Path('/mnt/y/temp')
+    data = []
+    for path in site.iterdir():
+            for f in path.iterdir():
+                if f.is_dir():
+                    for f1 in f.iterdir():
+                        format = get_format_info(str(f1))
+                        data.append([f1.name, '_'.join(format)])
+                else:
+                    format = get_format_info(str(f))
+                    data.append([f.name, '_'.join(format)])
+    dump_csv(data, "vidinfo.csv")
 
 if __name__ == "__main__":
-    add_fuliba()
+    clean_vid()
