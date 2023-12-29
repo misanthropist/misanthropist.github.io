@@ -27,12 +27,12 @@ def str2md5(str):
 
 def get_format_info(filename):
     command = '''ffmpeg -i "{}" -hide_banner'''.format(filename)
-    command
     ffmpeger = subprocess.Popen(command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
     info = str(ffmpeger.stderr.read())
     video_info = re.match(r'.*?Video: (.*?) ', info.replace('\n', '')).groups()
     audio_info = re.match(r'.*?Audio: (.*?) ', info.replace('\n', '')).groups()
     return (video_info[0], audio_info[0])
+
 
 def clean_m3u8(site):
     site = Path('/mnt/z/') / site
@@ -142,20 +142,29 @@ def clean_epubee():
                 data.append([n1, f.stem])
     dump_csv(data, site / "epubee.csv")
     
+def mkv2mp4(src, des):
+    command = 'ffmpeg -i "{}" -c:v copy -c:a copy -c:s mov_text "{}"'.format(str(src), str(des))
+    os.system(command)
 
 def clean_vid():
     site = Path('/mnt/y/temp')
-    data = []
-    for path in site.iterdir():
-            for f in path.iterdir():
-                if f.is_dir():
-                    for f1 in f.iterdir():
-                        format = get_format_info(str(f1))
-                        data.append([f1.name, '_'.join(format)])
-                else:
-                    format = get_format_info(str(f))
-                    data.append([f.name, '_'.join(format)])
-    dump_csv(data, "vidinfo.csv")
+    data = read_csv("vidinfo1.csv")
+    for d in data:
+        f = site / d[0]
+        if d[1] == "h264_aac":
+            mkv2mp4(f, f.parent.parent / 'result' / (f.stem + ".mp4"))
+        elif d[1] in ["h264_ac3","h264_pcm_s16le","h264_dts","h264_eac3"]:
+            f = site / "1h264" / d[0]
+            command = 'ffmpeg -i "{}" -c:v copy -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
+            os.system(command)
+        # elif d[1] in ["hevc_aac","mpeg4_aac"]:
+        #     command = 'ffmpeg -i "{}" -c:v libx264 -c:a copy -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
+        #     os.system(command)
+        # elif d[1] in ["hevc_ac3","mpeg4_mp3","wmv3_wmapro","wmv3_wmav2"]:
+        #     command = 'ffmpeg -i "{}" -c:v libx264 -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
+        #     os.system(command)
+
+
 
 if __name__ == "__main__":
     clean_vid()
