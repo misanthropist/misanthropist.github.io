@@ -147,22 +147,25 @@ def mkv2mp4(src, des):
     os.system(command)
 
 def clean_vid():
-    site = Path('/mnt/y/temp')
-    data = read_csv("vidinfo1.csv")
+    site = Path('/data/data/com.termux/files/home/temp/')
+    data = read_csv("/data/data/com.termux/files/home/temp/vidinfo1.csv")
     for d in data:
         f = site / d[0]
         if d[1] == "h264_aac":
             mkv2mp4(f, f.parent.parent / 'result' / (f.stem + ".mp4"))
-        elif d[1] in ["h264_ac3","h264_pcm_s16le","h264_dts","h264_eac3"]:
-            f = site / "1h264" / d[0]
-            command = 'ffmpeg -i "{}" -c:v copy -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
-            os.system(command)
-        # elif d[1] in ["hevc_aac","mpeg4_aac"]:
+        # elif d[1] in ["h264_ac3","h264_pcm_s16le","h264_dts","h264_eac3"]:
+        #     f = site / "1h264" / d[0]
+        #     command = 'ffmpeg -i "{}" -c:v copy -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
+        #     os.system(command)
+        # elif d[1] in ["mpeg4_aac"]:
+        #     f = site / "2aac" / d[0]
         #     command = 'ffmpeg -i "{}" -c:v libx264 -c:a copy -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
         #     os.system(command)
-        # elif d[1] in ["hevc_ac3","mpeg4_mp3","wmv3_wmapro","wmv3_wmav2"]:
-        #     command = 'ffmpeg -i "{}" -c:v libx264 -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
-        #     os.system(command)
+        elif d[1] in ["hevc_ac3","mpeg4_mp3","wmv3_wmapro","wmv3_wmav2"]:
+            f = site / "hevc" / "3hevc" / d[0]
+            if f.exists():
+                command = 'ffmpeg -i "{}" -c:v libx264 -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent.parent / 'result' / (f.stem + ".mp4")))
+                os.system(command)
 
 
 
