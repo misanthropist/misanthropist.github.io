@@ -2,30 +2,28 @@
 <html lang="zh-CN">
 <head>
     <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
     <meta name="author" content="doudou">
     <meta name="description" content="用代码、文字、图像记录新事物、新思想、新生活">
-    <link rel="icon" href="/static/pic/favicon.ico" type="image/x-icon">
     <title>树莓派小车运动避障及机械臂操作实现</title>
     <link rel="stylesheet" href="/static/css/base.css">
 </head>
 <body>
     <h1>树莓派小车运动避障及机械臂操作实现</h1>
-    <p>我在2019年3月买了一块树莓派3，本想用它来熟悉linux环境并用来写代码，但是cygwin实在用的顺手，而且Windows10又美观实用，所以之后便一直让它在吃灰。2020年7月看着闲置的树莓派，总想用它做点什么，便购置了一辆自带树莓派扩展版(HAT)的四轮小车。然后便搭建开发环境，实现了蜂鸣器、小车运动、避障监视、机械臂操作四大功能。</p>
+    <p>我在2019年3月买了一块树莓派3，本想用它来熟悉linux环境并用来写代码，但是cygwin实在用的顺手，而且Win10又美观实用，所以之后便一直让它在吃灰。2020年7月看着闲置的树莓派，总想用它做点什么，便购置了一辆自带树莓派扩展版(HAT)的四轮小车。然后便开始搭建开发环境，实现了蜂鸣器、小车运动、避障监视、机械臂操作四大功能。</p>
     <h2>1 开发环境</h2>
     <h3>1.1 硬件准备</h3>
     <p>树莓派采用的是Raspberry Pi3 B+，参数如下图：</p>
     <br>
-    <img class="center" src="/static/pic/pi/pi3.jpg">
+    <img src="/static/pic/pi/pi3.jpg">
     <p>树莓派扩展版的布局如下图：</p>
-    <img class="center" src="/static/pic/pi/HAT.jpg">
+    <img src="/static/pic/pi/HAT.jpg">
     <p>其他配件有8.4V/2A充电器一个，拆卸式3.7V可充电锂电池2节、1:48强磁抗干扰器碳刷电机4个、塑料车轮4个、HC-SR04超声波模块1个、usb摄像头1个、SG90舵机3个、红外传感器2个、三自由度木制机械臂1个、亚克力板和铜柱螺丝电线若干。</p>
     <h3>1.2 软件配置</h3>
-    <p>选择的操作系统是Raspbian，是树莓派推荐的Linux发行版，它是在Debian发行版的基础上添加了一些软件并进行了配置。</p>
-    <p>树莓派上电后，a.运行GPU中的ROM代码，挂载SD卡中的FAT32文件系统；b.运行SD卡中的bootcode.bin来启动start.elf，进而读取配置文件config.txt、内核运行参数cmdline.txt，将内核kernel.img加载到内存，系统正式启动；c.挂载EXT4文件系统。</p>
+    <p>选择的操作系统是Raspbian，是树莓派官方推荐的Linux发行版，它是在Debian发行版的基础上添加了一些软件并进行了配置。</p>
+    <p>树莓派通上电后，a.运行ROM中的代码，挂载SD卡中的FAT32文件系统；b.运行SD卡中的bootcode.bin来启动start.elf，进而读取配置文件config.txt、内核运行参数cmdline.txt，将内核kernel.img加载到内存，系统正式启动；c.挂载EXT4文件系统。</p>
     <h4>1.2.1 配置WiFi、SSH</h4>
-    <p>选择一个SD卡写入工具，将Raspbian系统镜像img文件写入SD卡。Raspbian系统允许在开机前对WiFi网络和ssh进行配置，所以先在SD卡/boot目录下新建wpa_supplicant.conf，然后填入如下代码：</p>
+    <p>选择一个SD卡写入工具，将Raspbian系统镜像img文件写入SD卡。Raspbian系统允许在开机前对WiFi网络和ssh进行配置，所以先在SD卡/boot目录下新建wpa_supplicant.conf，然后填入如下内容：</p>
     <pre class="code">country=CN
 ctrl_interface=DIR=/var/run/wpa_supplicant GROUP=netdev
 update_config=1
@@ -35,7 +33,8 @@ network={
     psk="wifi_password"
     key_mgmt=WPA-PSK
     priority=1
-}</pre>
+}
+    </pre>
     <p>key_mgmt代表WiFi使用的加密方式，priority代表优先级，数值越大优先级越大。再在/boot目录下新建ssh空白文件，这样开机自动启动sshd服务。将SD卡插入树莓派并启动电源，根据路由器查询树莓派IP地址，输入ssh指令连接树莓派。</p>
     <pre class="code">ssh-keygen #本地主机生成公私钥
 ssh-copy-id user@host #将公钥传送到树莓派host上
@@ -43,49 +42,47 @@ ssh user@host #以ssh命令行方式登陆树莓派</pre>
     <h4>1.2.2 安装基本软件</h4>
     <p>更换软件源：</p>
     <pre class="code"># 编辑 `/etc/apt/sources.list` 文件，删除原文件所有内容，用以下内容取代：
-deb http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian/ buster main non-free contrib rpi
-deb-src http://mirrors.tuna.tsinghua.edu.cn/raspbian/raspbian/ buster main non-free contrib rpi
-
-# 编辑 `/etc/apt/sources.list.d/raspi.list` 文件，删除原文件所有内容，用以下内容取代：
-deb http://mirrors.tuna.tsinghua.edu.cn/raspberrypi/ buster main ui
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye main contrib non-free
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-updates main contrib non-free
+deb https://mirrors.tuna.tsinghua.edu.cn/debian/ bullseye-backports main contrib non-free
+deb https://mirrors.tuna.tsinghua.edu.cn/debian-security bullseye-security main contrib non-free
     </pre>
-    <pre class="code"># 添加公钥
-gpg --keyserver  keyserver.ubuntu.com --recv-keys 9165938D90FDDD2E
-gpg --export --armor  9165938D90FDDD2E | sudo apt-key add -
-# 更新
-sudo apt-get update
-# 安装软件
-sudo apt-get install vim git</pre>
-    <p>安装git，创建空仓库，以便于本地向树莓派主机提交代码。</p>
-    <pre class="code">apt-get install git
+    <p>更新软件，创建空仓库，以便于本地向树莓派主机提交代码。</p>
+    <pre class="code">
+sudo apt-get update # 更新
+sudo apt-get install vim git nginx
 git init --bare gitrepo
 git config --global user.email your_email # 配置提交者的邮箱
 git config --global user.name your_name # 配置提交者的名字
-git remote set-url origin git@github.com:user/repo # 配置远程仓库</pre>
+git remote set-url origin git@github.com:user/repo # 配置远程仓库
+    </pre>
     <h4>1.2.3 网页显示树莓派运行状态</h4>
     <p>根据Github上的的Pi Dashboard项目修改而成，删减了大部分功能，保留了CPU、内存、磁盘运行状态。</p>
-    <img class="center" src="/static/pic/pi/pi_dashboard.png" alt="pi_dashboard">
+    <img src="/static/pic/pi/pi_dashboard.png" alt="pi_dashboard">
     <h2>2 蜂鸣器模块</h2>
-    <p>将一首歌曲的简谱转化为由声音频率和持续时长组成的数据，然后便可以根据该数据将这首歌的旋律在蜂鸣器展现出来。</p>
+    <p>将一首歌曲的简谱转化为由声音频率和持续时长组成的数据，然后便可以根据该数据将这首歌的旋律在蜂鸣器上展现出来。</p>
     <h3>2.1 PWM原理</h3>
     <p>采用的是无源蜂鸣器，其内部没有振荡源，必须用振荡的电流驱动它，因此需要PWM接口。PWM(Pulse Width Modulation)即脉冲宽度调制，是以微处理器的数字输出来控制模拟电路的控制技术。</p>
-    <img class="center" src="/static/pic/pi/pwm.png" alt="PWM">
+    <img src="/static/pic/pi/pwm.png" alt="PWM">
     <p>上图t<sub>pwm</sub>就是一个周期时长，t<sub>on</sub>是高电平时长，D为占空比。</p>
     <p>设定蜂鸣器PWM的占空比为50%，用PWM频率来模拟声音的频率，频率持续时间模拟声音的节拍。</p>
-    <pre class="code"><code class="language-python line-numbers">buzz = GPIO.PWM(channel, freq)
+    <pre class="code">
+buzz = GPIO.PWM(channel, freq)
 buzz.start(50)
 def sing(freq, dur):
     buzz.ChangeFrequency(freq)
-    time.sleep(dur)</code></pre>
+    time.sleep(dur)
+    </pre>
     <h3>2.2 乐理知识</h3>
     <p>一首乐曲有若干音符组成，每个音符由音调和演奏时间组成。不同的音调在物理上就对应不同频率的音波。所以我们只要控制输出的频率和时长就能输出一首音乐了。下面三张图分别是音符-钢琴键盘对照表、音符-简谱对照表、上海滩的简谱。</p>
-    <img class="center" src="/static/pic/pi/piano.png" alt="钢琴键盘">
+    <img height="200" src="/static/pic/pi/piano.png" alt="钢琴键盘">
     <br>
-    <img class="center" src="/static/pic/pi/jianpu.png" alt="简谱">
+    <img height="400" src="/static/pic/pi/jianpu.png" alt="简谱">
     <br>
-    <img class="center" src="/static/pic/pi/shanghaitan.jpg" alt="上海滩">
+    <img height="400" src="/static/pic/pi/shanghaitan.jpg" alt="上海滩">
     <p>选取上海滩开头部分的简谱就能得出其对应的频率和节拍，代码如下。</p>
-    <pre class="code">note2freq = {
+    <pre class="code">
+note2freq = {
         "NOTE_NULL" : 0, "NOTE_B0" : 31, "NOTE_C1" : 33, "NOTE_CS1" : 35, "NOTE_D1" : 37, "NOTE_DS1" : 39, "NOTE_E1" : 41, "NOTE_F1" : 44, "NOTE_FS1" : 46, "NOTE_G1" : 49, "NOTE_GS1" : 52, "NOTE_A1" : 55, "NOTE_AS1" : 58, "NOTE_B1" : 62, "NOTE_C2" : 65, "NOTE_CS2" : 69, "NOTE_D2" : 73, "NOTE_DS2" : 78, "NOTE_E2" : 82, "NOTE_F2" : 87, "NOTE_FS2" : 93, "NOTE_G2" : 98, "NOTE_GS2" : 104, "NOTE_A2" : 110, "NOTE_AS2" : 117, "NOTE_B2" : 123, "NOTE_C3" : 131, "NOTE_CS3" : 139, "NOTE_D3" : 147, "NOTE_DS3" : 156, "NOTE_E3" : 165, "NOTE_F3" : 175, "NOTE_FS3" : 185, "NOTE_G3" : 196, "NOTE_GS3" : 208, "NOTE_A3" : 220, "NOTE_AS3" : 233, "NOTE_B3" : 247, "NOTE_C4" : 262, "NOTE_CS4" : 277, "NOTE_D4" : 294, "NOTE_DS4" : 311, "NOTE_E4" : 330, "NOTE_F4" : 349, "NOTE_FS4" : 370, "NOTE_G4" : 392, "NOTE_GS4" : 415, "NOTE_A4" : 440, "NOTE_AS4" : 466, "NOTE_B4" : 494, "NOTE_C5" : 523, "NOTE_CS5" : 554, "NOTE_D5" : 587, "NOTE_DS5" : 622, "NOTE_E5" : 659, "NOTE_F5" : 698, "NOTE_FS5" : 740, "NOTE_G5" : 784, "NOTE_GS5" : 831, "NOTE_A5" : 880, "NOTE_AS5" : 932, "NOTE_B5" : 988, "NOTE_C6" : 1047, "NOTE_CS6" : 1109, "NOTE_D6" : 1175, "NOTE_DS6" : 1245, "NOTE_E6" : 1319, "NOTE_F6" : 1397, "NOTE_FS6" : 1480, "NOTE_G6" : 1568, "NOTE_GS6" :1661, "NOTE_A6" : 1760, "NOTE_AS6" : 1865, "NOTE_B6" : 1976, "NOTE_C7" : 2093, "NOTE_CS7" : 2217, "NOTE_D7" : 2349, "NOTE_DS7" : 2489, "NOTE_E7" : 2637, "NOTE_F7" : 2794, "NOTE_FS7" : 2960, "NOTE_G7" : 3136, "NOTE_GS7" : 3322, "NOTE_A7" : 3520, "NOTE_AS7" : 3729, "NOTE_B7" : 3951, "NOTE_C8" : 4186, "NOTE_CS8" : 4435, "NOTE_D8" : 4699, "NOTE_DS8" : 4978
     }
 num2note = {
@@ -104,7 +101,7 @@ beats = shanghaitan["beats"]
     <h3>3.1 直流步进电机</h3>
     <p>步进电机是一种将电脉冲信号转换成相应角位移或线位移的电动机。</p>
     <h3>3.2 驱动芯片</h3>
-    <p>TB6612FNG 是东芝半导体公司生产的一款直流电机驱动器件，它具有大电流MOSFET-H 桥结构，双通道电路输出，可同时驱动2个电机，下图为原理图。</p>
+    <p>TB6612FNG 是东芝半导体公司生产的一款直流电机驱动器件，它具有大电流 MOSFET-H 桥结构，双通道电路输出，可同时驱动2个电机，下图为原理图。</p>
     <img src="/static/pic/pi/TB6612FNG.png" alt="TB6612FNG原理图">
     <h3>3.3 运动模式</h3>
     <p>a. 前进模式</p>
