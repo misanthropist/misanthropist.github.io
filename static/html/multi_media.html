@@ -161,6 +161,7 @@
                         let li_item = document.createElement('li');
                         li_item.addEventListener('click', function() {
                             var item_index = current_csv_arr.indexOf(item);
+                            document.title=item[1];
                             if (site_meta.type == "m3u8") {
                                 var ele = func.$("#media")[0],
                                     vid = document.createElement("div");
