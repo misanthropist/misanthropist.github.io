@@ -1,10 +1,36 @@
-import glob
 import csv
-import re
 from pathlib import Path
 import hashlib
 import os
-import subprocess
+
+from PIL import Image
+
+from epub import get_epub_meta, extract_epub_file
+
+def crop_center(src, des, box):
+    img = Image.open(src)
+    myw, myh = box
+    w,h = img.size
+    a = w/myw
+    b = h/myh
+    ratio = 1
+    if a > 1 and b > 1:
+        if a > b:
+            ratio = b
+            true_w = int(w/ratio)
+            temp_img = img.resize((true_w, myh))
+            left = int((true_w - myw)/2)
+            temp_img = temp_img.crop([left, 0, left+myw, myh])
+        else:
+            ratio = a
+            true_h = int(h/ratio)
+            temp_img = img.resize((myw, true_h))
+            top = int((true_h - myh)/2)
+            temp_img = temp_img.crop([0, top, myw, top+myh])
+        temp_img.save(des)
+    else:
+        print("pic is too small.")
+        return False
 
 def dump_csv(data, path, mode="w"):
     with open(path, mode, encoding='utf-8', newline="") as csvfile:
@@ -25,149 +51,246 @@ def str2md5(str):
     str_id = md.hexdigest()
     return str_id
 
-def get_format_info(filename):
-    command = '''ffmpeg -i "{}" -hide_banner'''.format(filename)
-    ffmpeger = subprocess.Popen(command, stdout=subprocess.PIPE, stdin=subprocess.PIPE, stderr=subprocess.PIPE, shell=True)
-    info = str(ffmpeger.stderr.read())
-    video_info = re.match(r'.*?Video: (.*?) ', info.replace('\n', '')).groups()
-    audio_info = re.match(r'.*?Audio: (.*?) ', info.replace('\n', '')).groups()
-    return (video_info[0], audio_info[0])
+def dicts2csv(dicts):
+    list_csv = []
+    head = [h for h in dicts[0]]
+    list_csv.append(head)
+    for d in dicts:
+        data = []
+        for k in d:
+            data.append(d[k])
+        list_csv.append(data)
+    return list_csv
 
+def parse_cedict(dict_path):
+    list_of_dicts = []
+    with open(dict_path) as file:
+        text = file.read()
+        lines = text.split('\n')
+        dict_lines = list(lines)
+    for line in dict_lines:
+        parsed = {}
+        if line == '':
+            continue
+        line = line.rstrip('/')
+        line = line.split('/')
+        if len(line) <= 1:
+            continue
+        english = line[1]
+        char_and_pinyin = line[0].split('[')
+        characters = char_and_pinyin[0]
+        characters = characters.split()
+        traditional = characters[0]
+        simplified = characters[1]
+        pinyin = char_and_pinyin[1]
+        pinyin = pinyin.rstrip()
+        pinyin = pinyin.rstrip("]")
+        parsed['traditional'] = traditional
+        parsed['simplified'] = simplified
+        parsed['pinyin'] = pinyin
+        parsed['english'] = english
+        list_of_dicts.append(parsed)
 
-def clean_m3u8(site):
-    site = Path('/mnt/z/') / site
-    for dpath in site.iterdir():
-        # new_name = str2md5(dpath.name)
-        if not (dpath / 'cover.jpg').exists():
-            ts_name = list(glob.glob(os.path.join(dpath, "*.ts")))[0]
-            new_name = ts_name.replace('0.ts', '').replace(str(dpath)+'/', '')
-            cover_path = dpath / ('hls.jpg')
-            m3u8_path = dpath / (dpath.name+'.m3u8')
-            try: 
-                cover_path.rename(dpath / 'cover.jpg')
-            except:
-                coverpath = str(dpath)+'/hls.jpg'
-                command = 'ffmpeg -ss {} -i "{}" -frames:v 1 "{}"'.format(0, ts_name, coverpath)
-                os.system(command)
-                cover_path.rename(dpath / 'cover.jpg')
-            m3u8_path.rename(dpath / 'hls.m3u8')
-            with open(dpath / 'info.html', 'w', encoding='utf-8') as f:
-                content = '<h2>{}</h2>'.format(new_name)
-                f.write(content)
-            # dpath.rename(site / new_name)
+    return list_of_dicts
 
-def add_av():
-    site_path = Path('/mnt/z/av')
-    site_path_temp = Path('/mnt/z/tmp/av')
-    data = read_csv(site_path / 'av.csv')
-    for path in site_path_temp.iterdir():
-        if path.suffix == ".mp4":
-            new_id = str2md5(path.stem)
-            data.append([new_id, path.stem])
+def parse_ecdict(dict_path):
+    pass
 
-            coverpath = str(site_path)+'/'+new_id+'.jpg'
-            command = 'ffmpeg -ss {} -i "{}" -frames:v 1 "{}"'.format(0, str(path), coverpath)
-            os.system(command)
+def unwrap_dir(path):
+    for dpath in Path(path).iterdir():
+        dname = dpath.name
+        for fpath in dpath.iterdir():
+            fpath.rename(fpath.parent.parent / (dname+'-'+fpath.stem+fpath.suffix))
 
-            htmlpath = str(site_path)+'/'+new_id+'.html'
-            with open(htmlpath, 'w', encoding='utf-8') as f:
-                content = '<h2>{}</h2>'.format(path.stem)
-                f.write(content)
-                
-            path.rename(site_path / (new_id+path.suffix))
-    dump_csv(data, site_path / 'av.csv')
+def gen_site_meta(site):
+    src_site = Path('/mnt/z/tmp/') / site
+    src_csv_path = src_site / (site+'.csv')
+    des_site = Path('/mnt/z/') / site
+    des_csv_path = des_site / (site+'.csv')
+    if des_csv_path.exists():
+        data = read_csv(des_csv_path)
+    else:
+        data = []
+    return src_site, src_csv_path, des_site, des_csv_path, data
 
-def add_fuliba():
-    site_path = Path('/mnt/z/fuliba')
-    site_path_temp = Path('/mnt/z/tmp/fuliba')
-    data = read_csv(site_path / 'fuliba.csv')
-    for path in site_path_temp.iterdir():
-        new_id = str2md5(path.stem)
-        num = 0
-        for f in path.iterdir():
-            if f.stem == path.stem:
-                f.rename(path/(str(new_id)+".jpg"))
-            else:
-                num = num + 1
-                f.rename(path/(new_id+'_'+str(num) + f.suffix))
-        htmlpath = str(path)+'/'+new_id+'.html'
-        with open(htmlpath, 'w', encoding='utf-8') as f:
-            content = '<h2>{}</h2>'.format(path.stem)
-            f.write(content)
-        path.rename(site_path / new_id)
-        data.append([new_id, path.stem, str(num)])
-    dump_csv(data, site_path / "fuliba.csv")
-
-def clean_qqmusic():
-    site = Path('/mnt/z/qqmusic')
-    data = []
-    for path in site.iterdir():
-        if path.suffix == ".mp3":
-            new_id = str2md5(path.stem)
-            data.append([new_id, path.stem])
-            path.rename(path.parent / (new_id+path.suffix))
-        else:
-            new_id = str2md5(path.stem)
-            path.rename(path.parent / (new_id+path.suffix))
-    dump_csv(data, site / "qqmusic.csv")
-
-def clean_fuliba():
-    site = Path('/mnt/z/fuliba')
-    data = []
-    for path in site.iterdir():
-        name = path.stem
-        new_id = str2md5(name)
-        num = 0
-        for f in path.iterdir():
-            if f.suffix == ".jpg" and f.stem != name:
-                num = num + 1
-                f.rename(f.parent / (new_id+'_'+str(num) + f.suffix))
-            if f.suffix == ".jpg" and f.stem == name:
-                f.rename(f.parent / (new_id + f.suffix))
-        htmlpath = str(path)+'/'+new_id+'.html'
-        with open(htmlpath, 'w', encoding='utf-8') as f:
-            content = '<h2>{}</h2>'.format(path.stem)
-            f.write(content)
-        path.rename(path.parent / new_id)
-        data.append([new_id, name, str(num)])
-    dump_csv(data, site / "fuliba.csv")
-
-def clean_epubee():
-    site = Path('/mnt/z/epubee')
-    data = []
-    for path in site.iterdir():
-        n1 = path.stem
-        for f in path.iterdir():
-            if f.suffix == ".epub":
-                data.append([n1, f.stem])
-    dump_csv(data, site / "epubee.csv")
+def add_m3u8(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
     
-def mkv2mp4(src, des):
-    command = 'ffmpeg -i "{}" -c:v copy -c:a copy -c:s mov_text "{}"'.format(str(src), str(des))
-    os.system(command)
+    for dpath in src_site.iterdir():
+        if dpath.is_dir():
+            old_name = dpath.name
+            new_name = str2md5(old_name)
+            if [new_name, old_name] in data:
+                print("{} is existed".format(old_name))
+                continue
 
-def clean_vid():
-    site = Path('/data/data/com.termux/files/home/temp/')
-    data = read_csv("/data/data/com.termux/files/home/temp/vidinfo1.csv")
-    for d in data:
-        f = site / d[0]
-        if d[1] == "h264_aac":
-            mkv2mp4(f, f.parent.parent / 'result' / (f.stem + ".mp4"))
-        # elif d[1] in ["h264_ac3","h264_pcm_s16le","h264_dts","h264_eac3"]:
-        #     f = site / "1h264" / d[0]
-        #     command = 'ffmpeg -i "{}" -c:v copy -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
-        #     os.system(command)
-        # elif d[1] in ["mpeg4_aac"]:
-        #     f = site / "2aac" / d[0]
-        #     command = 'ffmpeg -i "{}" -c:v libx264 -c:a copy -c:s mov_text "{}"'.format(str(f), str(f.parent.parent / 'result' / (f.stem + ".mp4")))
-        #     os.system(command)
-        elif d[1] in ["hevc_ac3","mpeg4_mp3","wmv3_wmapro","wmv3_wmav2"]:
-            f = site / "hevc" / "3hevc" / d[0]
-            if f.exists():
-                command = 'ffmpeg -i "{}" -c:v libx264 -c:a aac -c:s mov_text "{}"'.format(str(f), str(f.parent.parent.parent / 'result' / (f.stem + ".mp4")))
-                os.system(command)
+            cover_path = dpath / 'cover.jpg'
+            if not cover_path.exists():
+                for f in dpath.iterdir():
+                    if f.suffix == ".ts":
+                        command = 'ffmpeg -ss {} -i "{}" -frames:v 1 "{}"'.format(3, f, cover_path)
+                        os.system(command)
+                        with open(dpath / 'info.html', 'w', encoding='utf-8') as f:
+                            content = '<h2>{}</h2>'.format(old_name)
+                            f.write(content)
+                        dpath.rename(des_site / new_name)
+                        data.append([new_name, old_name])
+                        break
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+
+def add_mp4(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
+
+    for fpath in src_site.glob("*.mp4"):
+        old_name = fpath.stem
+        new_name = str2md5(old_name)
+        if [new_name, old_name] in data:
+            print("{} is existed".format(old_name))
+            continue
+
+        cover_path = src_site / (new_name+".jpg")
+        command = 'ffmpeg -ss {} -i "{}" -frames:v 1 "{}"'.format(3, fpath, cover_path)
+        os.system(command)
+        info_path = src_site / (new_name+".html")
+        with open(info_path, 'w', encoding='utf-8') as f:
+            content = '<h2>{}</h2>'.format(old_name)
+            f.write(content)
+        if not cover_path.exists():
+            print("{}'s cover is not existed".format(old_name))
+            continue
+        else:
+            fpath.rename(des_site / (new_name+".mp4"))
+            cover_path.rename(des_site / cover_path.name)
+            info_path.rename(des_site / info_path.name)
+            data.append([new_name, old_name])
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+
+def add_mp3(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
+
+    for fpath in src_site.glob("*.mp3"):
+        old_name = fpath.stem
+        new_name = str2md5(old_name)
+        if [new_name, old_name] in data:
+            print("{} is existed".format(old_name))
+            continue
+
+        cover_path = src_site / (new_name+".jpg")
+        command = 'ffmpeg -i "{}" "{}"'.format(fpath, cover_path)
+        os.system(command)
+        if not cover_path.exists():
+            print("{}'s cover is not existed".format(old_name))
+            continue
+        else:
+            fpath.rename(des_site / (new_name+".mp3"))
+            cover_path.rename(des_site / cover_path.name)
+            data.append([new_name, old_name])
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
 
 
+def add_epub(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
 
+    for fpath in src_site.glob("*.epub"):
+        epub_name = fpath.stem
+        dc, cover_url, chapter_list = get_epub_meta(fpath)
+        cover_path = src_site / (epub_name+".jpg")
+        extract_epub_file(fpath, cover_url, cover_path)
+        if not cover_path.exists():
+            print("{}'s cover is not existed".format(epub_name))
+            continue
+        else:
+            fpath.rename(des_site / fpath.name)
+            cover_path.rename(des_site / cover_path.name)
+            data.append(['.', epub_name])
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+
+def add_pdf(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
+
+    for fpath in src_site.glob("*.pdf"):
+        old_name = fpath.stem
+        new_name = str2md5(old_name)
+        if [new_name, old_name] in data:
+            print("{} is existed".format(old_name))
+            continue
+        fpath.rename(des_site / (new_name+".pdf"))
+        data.append([new_name, old_name])
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+    
+
+def add_jpg(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
+
+    for dpath in src_site.iterdir():
+        if dpath.is_dir():
+            old_name = dpath.name
+            new_name = str2md5(dpath.name)
+            num = 0
+            for fpath in dpath.iterdir():
+                if fpath.suffix == ".jpg":
+                    num = num + 1
+                    fpath.rename(fpath.parent / (new_name+'_'+str(num)+".jpg"))
+            for fpath in dpath.iterdir():
+                if fpath.suffix == ".jpg":
+                    cover_path = fpath.parent / (new_name+".jpg")
+                    if not crop_center(fpath, cover_path, (340,500)):
+                        break
+            info_path = dpath / (new_name+".html")
+            with open(info_path, 'w', encoding='utf-8') as f:
+                content = '<h2>{}</h2>'.format(old_name)
+                f.write(content)
+            dpath.rename(des_site / new_name)
+            data.append([new_name, old_name, str(num)])
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+
+def add_csv(site):
+    src_site, src_csv_path, des_site, des_csv_path, data = gen_site_meta(site)
+
+    if site == "cedict":
+        ce_path = src_site / "cedict_ts.u8"
+        list_of_dicts = parse_cedict(ce_path)
+        data = dicts2csv(list_of_dicts)
+
+    if site == "today":
+        import json
+        today = Path("/mnt/z/tmp/today/").glob("*.json")
+        for t in today:
+            name = t.stem
+            result = []
+            with open(t, 'r', encoding="utf-8") as f:
+                content = json.load(f)
+                for k in content:
+                    result.extend(content[k])
+                result = [len(result), name] + result
+                data.append(result)
+    
+    if site == "ecdict":
+        path = src_site / "ecdict.csv"
+        data = []
+        with open(path, 'r', encoding='utf-8', newline='') as f:
+            csvrd = csv.reader(f)
+            for row in csvrd:
+                if row[0] and row[1] and row[2] and row [3]:
+                    data.append([row[3], row[0], row[1], row[2]])
+
+    dump_csv(data, src_csv_path)
+    dump_csv(data, des_csv_path)
+    
 if __name__ == "__main__":
-    clean_vid()
+    pass
+    add_csv("today")
+    
+
+
