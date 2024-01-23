@@ -103,9 +103,9 @@ def unwrap_dir(path):
             fpath.rename(fpath.parent.parent / (dname+'-'+fpath.stem+fpath.suffix))
 
 def gen_site_meta(site):
-    src_site = Path('/mnt/z/tmp/') / site
+    src_site = Path('/home/doudou/temp/a/tmp/') / site
     src_csv_path = src_site / (site+'.csv')
-    des_site = Path('/mnt/z/') / site
+    des_site = Path('/home/doudou/temp/a/') / site
     des_csv_path = des_site / (site+'.csv')
     if des_csv_path.exists():
         data = read_csv(des_csv_path)
@@ -265,7 +265,7 @@ def add_csv(site):
 
     if site == "today":
         import json
-        today = Path("/mnt/z/tmp/today/").glob("*.json")
+        today = Path("/home/doudou/temp/a/tmp/today/").glob("*.json")
         for t in today:
             name = t.stem
             result = []
@@ -289,8 +289,7 @@ def add_csv(site):
     dump_csv(data, des_csv_path)
     
 if __name__ == "__main__":
-    pass
-    add_csv("today")
+    add_mp4('av')
     
 
 
