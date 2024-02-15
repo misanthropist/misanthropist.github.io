@@ -15,6 +15,7 @@
         
         #up_page { position:absolute; top: 0; width: 0; height: 0; z-index: -1;}
         #down_page { position:absolute; bottom: 0; width: 0; height: 0; z-index: -1;}
+        a:hover { color: white; }
         
         @media screen and (min-width: 1200px) { 
             body{ width: 70rem; text-align: center;}
@@ -454,15 +455,43 @@
                     flow: "paginated",
                     width: "100%"
                 });
+                /*
+                type RenditionOptions = {
+                    width?: string | number; // 视图宽度
+                    height?: string | number; // 视图高度
+                    ignoreClass?: string; // 忽略类名
+                    manager?: 'continuous' | 'default'; // 布局管理器
+                    view?: 'iframe' | Object | Function; // 视图容器
+                    flow?: 'paginated' | 'scrolled'; // 阅读方式
+                    layout?: string; // TODO: 我没看懂
+                    spread?: 'none' | boolean; // 是否显示双页
+                    minSpreadWidth?: number; // 最小触发双页的宽度
+                    resizeOnOrientationChange?: boolean; // 在窗口 resize 时调整内容尺寸
+                    script?: string; // 注入到 View 中的 js 代码
+                    stylesheet?: string; // 注入到 View 中的 css 样式
+                    infinite?: boolean; // 是否无限翻页
+                    overflow?: string; // 设置视图的 CSS overflow 属性
+                    snap?: boolean; // 是否支持翻页
+                    defaultDirection?: string; // 阅读方向
+                    allowScriptedContent?: boolean; // iframe 沙盒是否能够执行 js
+                };
+                */
             rendition.display();
-
+            /*
+            // 百分比的情况
+            if (this.book.locations.length() && isFloat(target)) {
+            target = this.book.locations.cfiFromPercentage(parseFloat(target));
+            }
+            // 目录路径、epub-cfi 的情况，我们只关注目录路径的情况
+            section = this.book.spine.get(target);
+            */
             //显示图书目录
             book.loaded.navigation.then(function(toc) {
                 toc.forEach(function(chapter) {
                     var nav_a = document.createElement("a");
                     nav_a.setAttribute("href", "#epub_area");
                     nav_a.setAttribute("aria-data", chapter.href);
-                    nav_a.textContent = chapter.label + "|";
+                    nav_a.textContent = chapter.label + " | ";
                     nav_a.addEventListener("click", function() {
                         rendition.display(chapter.href);
                     })
