@@ -41,7 +41,7 @@ router.route('/', function() {
     func.random_item(ele, "/static/json/header.json");
 });
 
-router.route('/static/html/'+encodeURI('追寻所有社会现象的历史起源')+'.html', function () {
+router.route('/static/html/'+encodeURI('中学教师')+'.html', function () {
     func.ajax("GET", "/static/json/timeline.json", function (data) {
         timeline = func.$("#timeline")[0];
         timeline.textContent = data;
