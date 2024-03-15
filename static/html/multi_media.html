@@ -15,9 +15,9 @@
         
         #up_page { position:absolute; top: 0; width: 0; height: 0; z-index: -1;}
         #down_page { position:absolute; bottom: 0; width: 0; height: 0; z-index: -1;}
-        
-        @media screen and (min-width: 1200px) { 
-            body{ width: 70rem; text-align: center;}
+        @media screen and (min-width: 1200px) {
+            body{ max-width: 70rem; text-align: center;}
+            #media { padding-left: 15rem; width: 40rem; }
             #site { z-index: -1;}
             #page_nav { position: fixed; left: 1rem; top: 0px;}
             #itemlist { position: fixed; height: 70rem; width: 20rem; overflow: auto; left: 1rem; top: 8rem; }
@@ -40,14 +40,16 @@
             }
         }
         @media screen and (max-width: 1200px) { 
+            body{ text-align: center; }
+            #media { width: 30rem; }
             #site { width: 100%; display: flex; align-items:flex-start;}
             #itemlist { height: 350px; width: 40%; overflow: auto; }
             #itemlist li {
                 border: 1px solid #ddd;
                 background-color: #f6f6f6; 
-                padding: 6px; 
+                padding: 1px; 
                 text-decoration: none;
-                font-size: 16px; 
+                font-size: 12px; 
                 color: black; 
                 display: block; cursor: pointer; 
             }
@@ -115,7 +117,7 @@
         }
 
         function switch_site(site) {
-            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "16", disk: 'a', search_key: ""},
+            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "12", disk: 'a', search_key: ""},
                 csv_arr = [],
                 meta = site.split("_");
             site_meta.name = meta[1];
@@ -166,10 +168,12 @@
                     all_item = document.createElement('ul');
                 current_csv_arr.forEach(item => {
                     if (item[0]) {
-                        let li_item = document.createElement('li');
+                        let li_item = document.createElement('li'),
+                            short_title = item[1].slice(0, 12);
+                        li_item.innerText = short_title;
                         li_item.addEventListener('click', function() {
                             var item_index = current_csv_arr.indexOf(item);
-                            document.title=item[1];
+                            document.title=short_title;
                             if (site_meta.type == "m3u8") {
                                 var ele = func.$("#media")[0],
                                     vid = document.createElement("div");
@@ -270,7 +274,7 @@
                                 switch_html(site_meta, item);
                             }
                         })
-                        li_item.innerText = item[1];
+
                         all_item.appendChild(li_item);
                     }
                 });
