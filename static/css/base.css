@@ -102,3 +102,59 @@ footer>p { text-indent: 0; }
     padding:1px;
     border:1px solid #d0d0d0;
 }
+
+/* multi_media */
+.dplayer-menu-item:nth-last-child(-n+3) { display: none !important;}
+.dplayer-setting { display: none !important; }
+#epub_area { position: relative; background-color: #8e7f6b; }
+#epub_page {text-align: center; }
+#left_page { position:absolute; left: 0; width: 30%; height: 100%; z-index: 99;}
+#right_page { position:absolute; right: 0; width: 30%; height: 100%; z-index: 99;}
+
+#up_page { position:absolute; top: 0; width: 0; height: 0; z-index: -1;}
+#down_page { position:absolute; bottom: 0; width: 0; height: 0; z-index: -1;}
+@media screen and (min-width: 1200px) {
+    .multi_media { max-width: 70rem; text-align: center; padding: 0px; background-color: rgb(231, 239, 244); }
+    #item_meta { z-index: -1;}
+    #page_nav { position: fixed; left: 1rem; top: 0px;}
+    #itemlist { position: fixed; height: 70rem; width: 20rem; overflow: auto; left: 1rem; top: 8rem; }
+    #itemlist li {
+        border: 1px solid #fff;
+        padding: 6px; 
+        text-decoration: none;
+        font-size: 16px; 
+        color: black; 
+        display: block; cursor: pointer; 
+    }
+    #media { padding-left: 15rem; width: 40rem; }
+    #media_info { position: fixed; width: 20rem; height: 70rem; overflow: auto; right: 1rem; top: 0px;}
+    #media_info img { max-height: 20rem; }
+    #items_search {
+        padding: 6px; 
+        border: 1px solid #fff;
+        background-color: rgb(231, 239, 244);
+        outline: none;
+    }
+}
+@media screen and (max-width: 1200px) { 
+    .multi_media { text-align: center; width: 100%; padding: 0px; background-color: rgb(231, 239, 244); }
+    #site_meta { width: 100%; display: inline-block; vertical-align: middle; }
+    #item_meta { width: 30%; display: inline-block; vertical-align: middle; }
+    #itemlist { overflow: auto; }
+    #items_search {
+        padding: 6px; 
+        border: 1px solid #fff;
+        background-color: rgb(231, 239, 244);
+        outline: none;
+    }
+    #itemlist li {
+        border: 1px solid #ddd;
+        padding: 1px; 
+        text-decoration: none;
+        font-size: 12px; 
+        color: black; 
+        display: block; cursor: pointer; 
+    }
+    #media { width: 50%; display: inline-block; vertical-align: middle; }
+    #media_info { display: none; }
+}
