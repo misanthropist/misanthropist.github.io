@@ -107,7 +107,7 @@ footer>p { text-indent: 0; }
 .dplayer-menu-item:nth-last-child(-n+3) { display: none !important;}
 .dplayer-setting { display: none !important; }
 #epub_area { position: relative; background-color: #8e7f6b; }
-#epub_area a:active { background-color: rgba(255,255,255, 0);}
+#epub_area a { -webkit-tap-highlight-color: transparent;}
 #epub_page {text-align: center; }
 #left_page { position:absolute; left: 0; width: 30%; height: 100%; z-index: 99;}
 #right_page { position:absolute; right: 0; width: 30%; height: 100%; z-index: 99;}
