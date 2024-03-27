@@ -22,10 +22,7 @@
             <a href="#" class="button" onclick="switch_site('jpg_fuliba')">fuliba</a>
             <a href="#" class="button" onclick="switch_site('epub_epubee')">epubee</a>
             <a href="#" class="button" onclick="switch_site('pdf_pdfbook')">pdfbook</a>
-            <a href="#" class="button" onclick="switch_site('csv_ecdict')">ecdict</a>
-            <a href="#" class="button" onclick="switch_site('csv_cedict')">cedict</a>
-            <a href="#" class="button" onclick="switch_site('csv_today')">today</a>
-            <a href="#" class="button" onclick="switch_site('html_zim')">zim</a>
+            <a href="#" class="button" onclick="switch_site('mixed_collection')">collection</a>
         </div>
         <div id="item_meta">
             <div id="page_nav"></div>
@@ -48,26 +45,87 @@
     <script src="/static/js/func.js"></script>
     <script src="/static/js/router.js"></script>
     <script>
-        function csv2db(key, data, db) {
+        function csv2db(site_meta, data, db) {
             var csv_items = data.replace(/\r/g, '').split("\n"),
                 csv_arr = [];
             csv_items.forEach(item => {
                 if (item) {
-                    csv_arr.push(item.split((/,(?=(?:(?:[^"]*"){2})*[^"]*$)/)));
+                    item = item.split((/,(?=(?:(?:[^"]*"){2})*[^"]*$)/));
+                    item[0] = '/'+site_meta.disk+'/'+site_meta.name+'/'+item[0];
+                    item.push(site_meta.type);
+                    csv_arr.push(item);
                 }
             });
             
-            db.add(key, csv_arr);
+            db.add(site_meta.name, csv_arr);
             return csv_arr;
+        }
 
+        function gen_uncollect(item) {
+            var collect = document.createElement('a');
+            collect.setAttribute('href', '#');
+            collect.setAttribute('class', 'button');
+            collect.textContent = "取消收藏";
+            
+            collect.addEventListener("click", function() {
+                var db = func.dbObject;
+                db.init({
+                    db_name: "multi_media",
+                    db_version: 1,
+                    db_table_name: "multi_media"
+                }, function() {
+                    db.select("collection", function() {
+                        var result = db.result["collection"];
+                        result = result.filter(function(i) {
+                            return i.toString() != item.toString();
+                        });
+                        db.put('collection', result);
+                    });
+                });
+            });
+
+            return collect;
+        }
+
+        function gen_collect(item) {
+            var collect = document.createElement('a');
+            collect.setAttribute('href', '#');
+            collect.setAttribute('class', 'button');
+            collect.textContent = "收藏";
+            
+            collect.addEventListener("click", function() {
+                var db = func.dbObject;
+                db.init({
+                    db_name: "multi_media",
+                    db_version: 1,
+                    db_table_name: "multi_media"
+                }, function() {
+                    db.select("collection", function() {
+                        var result = db.result["collection"];
+                        if (result == undefined) {
+                            db.add('collection', [item])
+                        } else if (result.find(function(i){return i.toString() == item.toString();}) == undefined) {
+                            result.push(item);
+                            db.put('collection', result);
+                        } else {
+                            console.log("item already exists.");
+                        }
+                    });
+                });
+            });
+
+            return collect;
         }
 
         function switch_site(site) {
-            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "12", disk: 'a', search_key: ""},
+            var site_meta = {name: "", type: "", saved: "false", all_item_num: "", current_page_num: "1", per_page_num: "12", disk: 'a', search_key: "", item_index: ""},
                 csv_arr = [],
                 meta = site.split("_");
             site_meta.name = meta[1];
             site_meta.type = meta[0];
+            if (site_meta.type == "mixed") {
+                site_meta.saved = "true";
+            }
             if (localStorage.getItem(site) == null) {
                 localStorage.setItem(site, JSON.stringify(site_meta));
             } else {
@@ -80,13 +138,12 @@
             db.init({
                 db_name: "multi_media",
                 db_version: 1,
-                db_store_name: "multi_media"
+                db_table_name: "multi_media"
             }, function() {
                 if (site_meta.saved == "true") {
                     db.select(site_meta.name, function() {
                         csv_arr = db.result[site_meta.name];
                         site_meta.all_item_num = csv_arr.length;
-                        // site_meta.search_key = "";
                         gen_itemlist(csv_arr, site_meta);
                         gen_pagemeta(csv_arr, site_meta);
                     });
@@ -95,9 +152,9 @@
                         "get",
                         "/"+site_meta.disk+"/"+site_meta.name+"/"+site_meta.name+".csv",
                         function(data) {
-                            csv_arr = csv2db(site_meta.name, data, db);
-                            site_meta.saved = "true";
+                            csv_arr = csv2db(site_meta, data, db);
                             site_meta.all_item_num = csv_arr.length;
+                            site_meta.saved = "true";
                             localStorage.setItem(site, JSON.stringify(site_meta));
                             gen_itemlist(csv_arr, site_meta);
                             gen_pagemeta(csv_arr, site_meta);
@@ -118,25 +175,20 @@
                         let li_item = document.createElement('li');
                         li_item.innerText = item[1].slice(0, 12);
                         li_item.addEventListener('click', function() {
-                            var item_index = current_csv_arr.indexOf(item);
+                            var item_type = item[item.length - 1];
                             document.title=item[1].slice(0, 12);
-                            if (site_meta.type == "m3u8" || site_meta.type == "mp4") {
+                            if (item_type == "m3u8" || item_type == "mp4") {
                                 switch_vid(csv_arr, site_meta, item);
-                            } else if (site_meta.type == "mp3") {
+                            } else if (item_type == "mp3") {
                                 switch_audio(csv_arr, site_meta, item);
-                            } else if (site_meta.type == "jpg") {
+                            } else if (item_type == "jpg") {
                                 switch_pic(csv_arr, site_meta, item);
-                            } else if (site_meta.type == "epub") {
-                                switch_epub(csv_arr, site_meta, item)
-                            } else if (site_meta.type == "pdf") {
+                            } else if (item_type == "epub") {
+                                switch_epub(site_meta, item)
+                            } else if (item_type == "pdf") {
                                 switch_pdf(site_meta, item);
-                            } else if (site_meta.type == "csv") {
-                                switch_csv(site_meta, item);
-                            } else if (site_meta.type == "html") {
-                                switch_html(site_meta, item);
                             }
                         })
-
                         all_item.appendChild(li_item);
                     }
                 });
@@ -153,99 +205,85 @@
             }
         }
 
-    function gen_pagemeta(csv_arr, site_meta) {
-        let all_page_num = Math.ceil(site_meta.all_item_num/site_meta.per_page_num),
-            page_nav = func.$("#page_nav")[0],
-            prev = document.createElement('a'),
-            next = document.createElement('a'),
-            half = document.createElement('a'),
-            page_count = document.createElement("span"),
-            page_index = document.createElement("span"),
-            clear_meta = document.createElement('a'),
-            nav_br = document.createElement('br');
-        prev.setAttribute('href', '#');
-        prev.setAttribute('class', 'button');
-        prev.textContent = "上一页"
+        function gen_pagemeta(csv_arr, site_meta) {
+            let all_page_num = Math.ceil(site_meta.all_item_num/site_meta.per_page_num),
+                page_nav = func.$("#page_nav")[0],
+                prev = document.createElement('a'),
+                next = document.createElement('a'),
+                half = document.createElement('a'),
+                page_count = document.createElement("span"),
+                page_index = document.createElement("span"),
+                clear_meta = document.createElement('a'),
+                nav_br = document.createElement('br');
+            prev.setAttribute('href', '#');
+            prev.setAttribute('class', 'button');
+            prev.textContent = "上一页"
 
-        next.setAttribute('href', '#');
-        next.setAttribute('class', 'button');
-        next.textContent = "下一页";
+            next.setAttribute('href', '#');
+            next.setAttribute('class', 'button');
+            next.textContent = "下一页";
 
-        half.setAttribute('href', '#');
-        half.setAttribute('class', 'button');
-        half.textContent = "二分页";
+            half.setAttribute('href', '#');
+            half.setAttribute('class', 'button');
+            half.textContent = "二分页";
 
-        clear_meta.setAttribute('href', '#');
-        clear_meta.setAttribute('class', 'button');
-        clear_meta.textContent = "重置";
+            clear_meta.setAttribute('href', '#');
+            clear_meta.setAttribute('class', 'button');
+            clear_meta.textContent = "重置";
 
-        clear_meta.addEventListener("click", function() {
-            localStorage.removeItem(site_meta.type+"_"+site_meta.name);
-        });
-        prev.addEventListener('click', function() {
-            if (site_meta.current_page_num > 1) {
-                site_meta.current_page_num --;
-            } else {
-                site_meta.current_page_num = all_page_num;
-            }
-            page_index.textContent="当前页: "+site_meta.current_page_num;
-            localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);
-        });
-        next.addEventListener('click', function() {
-            if (site_meta.current_page_num < all_page_num) {
-                site_meta.current_page_num ++;
-            } else {
-                site_meta.current_page_num = 1;
-            }
-            page_index.textContent="当前页: "+site_meta.current_page_num;
-            localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);
-        });
-        half.addEventListener('click', function() {
-            if (site_meta.current_page_num > 1) {
-                site_meta.current_page_num = Math.ceil(site_meta.current_page_num/2);
-            } else {
-                site_meta.current_page_num = 1;
-            }
-            page_index.textContent="当前页: "+site_meta.current_page_num;
-            localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
-            gen_itemlist(csv_arr, site_meta);
-        });
-        page_count.textContent="总页数: "+all_page_num+' ';
-        page_index.textContent="当前页: "+site_meta.current_page_num+' ';
-        
-
-        page_nav.innerHTML = '';
-        page_nav.appendChild(prev);
-        page_nav.appendChild(next);
-        page_nav.appendChild(half);
-        page_nav.appendChild(nav_br);
-        page_nav.appendChild(page_count);
-        page_nav.appendChild(page_index);
-        page_nav.appendChild(clear_meta);
-    }
-
-
-        function switch_csv(site_meta, item) {
-            var media = func.$("#media")[0],
-                csv = document.createElement("div");
-            item.forEach(function(value) {
-                csv.innerHTML += ("<p>"+value+"</p>");
+            clear_meta.addEventListener("click", function() {
+                localStorage.removeItem(site_meta.type+"_"+site_meta.name);
+                var db = func.dbObject;
+                db.init({
+                    db_name: "multi_media",
+                    db_version: 1,
+                    db_table_name: "multi_media"
+                }, function() {
+                    db.delete(site_meta.name);
+                });
             });
-            media.innerHTML = '';
-            media.appendChild(csv);
-        }
 
-        function switch_html(site_meta, item) {
-            var media = func.$("#media")[0],
-                f = document.createElement("iframe");
-            f.setAttribute("src", item[0]);
-            f.setAttribute("frameborder", 0);
-            f.setAttribute("width", "100%");
-            f.setAttribute("height", "900");
-            media.innerHTML = '';
-            media.appendChild(f);
+            prev.addEventListener('click', function() {
+                if (site_meta.current_page_num > 1) {
+                    site_meta.current_page_num --;
+                } else {
+                    site_meta.current_page_num = all_page_num;
+                }
+                page_index.textContent=" 当前页:"+site_meta.current_page_num;
+                localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
+                gen_itemlist(csv_arr, site_meta);
+            });
+            next.addEventListener('click', function() {
+                if (site_meta.current_page_num < all_page_num) {
+                    site_meta.current_page_num ++;
+                } else {
+                    site_meta.current_page_num = 1;
+                }
+                page_index.textContent=" 当前页: "+site_meta.current_page_num;
+                localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
+                gen_itemlist(csv_arr, site_meta);
+            });
+            half.addEventListener('click', function() {
+                if (site_meta.current_page_num > 1) {
+                    site_meta.current_page_num = Math.ceil(site_meta.current_page_num/2);
+                } else {
+                    site_meta.current_page_num = 1;
+                }
+                page_index.textContent=" 当前页: "+site_meta.current_page_num;
+                localStorage.setItem(site_meta.type+"_"+site_meta.name, JSON.stringify(site_meta));
+                gen_itemlist(csv_arr, site_meta);
+            });
+            page_count.textContent = "总页数: "+all_page_num;
+            page_index.textContent = " 当前页: "+site_meta.current_page_num;
+
+            page_nav.innerHTML = '';
+            page_nav.appendChild(prev);
+            page_nav.appendChild(next);
+            page_nav.appendChild(half);
+            page_nav.appendChild(nav_br);
+            page_nav.appendChild(page_count);
+            page_nav.appendChild(page_index);
+            page_nav.appendChild(clear_meta);
         }
 
         function my_search(e, csv_arr, site_meta) {
@@ -269,9 +307,6 @@
                 }
             }
         }
-
-
-
     </script>
 </body>
 </html>

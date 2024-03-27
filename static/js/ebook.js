@@ -1,4 +1,4 @@
-function switch_epub(csv_arr, site_meta, item) {
+function switch_epub(site_meta, item) {
     var ele = func.$("#media")[0],
         eb = document.createElement("div"),
         eb_info = `
