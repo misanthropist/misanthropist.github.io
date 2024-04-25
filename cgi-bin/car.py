@@ -15,10 +15,10 @@ print("Content-type:text/html\n")
 form = cgi.FieldStorage()
 command = form.getvalue("command")
 
+PassiveBuzzer = 17
 SensorLeft = 12
 T_SensorLeft = 13
 SensorRight = 16
-PassiveBuzzer = 17
 PWMA = 18
 TRIG = 20
 ECHO = 21
@@ -68,17 +68,15 @@ def setup():
 
 
 class Buzzer(object):
-    def __init__(self):
+    def __init__(self, song):
         self.Buzz = GPIO.PWM(PassiveBuzzer, 440)
-        # self.song = [330, 393, 441, 330, 294, 330, 393, 441, 525, 441, 393, 262, 330, 294, 294, 330, 393, 294, 330, 330, 211, 211, 211, 262, 294, 330, 294, 248, 211, 262, 196]
-        # self.beat = [1, 1, 3, 1, 1, 3, 1, 1, 1, 1, 1, 1, 1, 1, 3, 1,1, 3, 1, 1, 1, 1, 1, 1, 1, 2, 1, 1, 1, 1, 1]
-        self.song = [d.note2freq[d.num2note[num]] for num in d.shanghaitan["nums"]]
-        self.beat = d.shanghaitan["beats"]
+        self.freqs = [d.note2freq[d.num2note[num]] for num in song["nums"]]
+        self.beats = song["beats"]
     def sing(self):
         self.Buzz.start(50)
-        for i in range(len(self.song)):
+        for i in range(len(self.freqs)):
             self.Buzz.ChangeFrequency(self.song[i])
-            time.sleep(self.beat[i])
+            time.sleep(self.beats[i])
     def destory(self):
         self.Buzz.stop()
 
@@ -143,22 +141,6 @@ class Movement(object):
         self.L_Motor.stop()
         self.R_Motor.stop()
 
-class Infrared(object):
-    def __init__(self):
-        pass
-    def state(self):
-        if GPIO.input(SensorLeft) == True and GPIO.input(SensorRight) == True:
-            return "11"
-        elif GPIO.input(SensorLeft) == True and GPIO.input(SensorRight) == False:
-            return "10"
-        elif GPIO.input(SensorLeft) == False and GPIO.input(SensorRight) == True:
-            return "01"
-        else:
-            return "00"
-
-    def destory(self):
-        GPIO.cleanup()
-
 class Ultrasonic(object):
     def __init__(self):
         pass
@@ -185,7 +167,7 @@ class Ultrasonic(object):
 
 class Webcam(object):
     def __init__(self):
-       self.mjpg_streamer = 'mjpg_streamer -i "/usr/local/lib/mjpg-streamer/input_uvc.so -d /dev/video0 -n -f 30" -o "/usr/local/lib/mjpg-streamer/output_http.so -w /usr/local/share/mjpg-streamer/www -p 8080" /dev/null 2>&1 &'
+       self.mjpg_streamer = '/home/doudou/temp/mjpg/mjpg_streamer -i "/home/doudou/temp/mjpg/input_uvc.so -d /dev/video0 -n -f 1 -r 160x120" -o "/home/doudou/temp/mjpg/output_http.so -w ~/temp/mjpg/www -p 8080" > /dev/null 2>&1 &'
        self.close_mjpg = 'mjpg=`pidof mjpg_streamer` && kill -9 $mjpg'
     def webcam_on(self):
         os.system(self.mjpg_streamer)
@@ -266,7 +248,7 @@ class Servo(object):
         rotate(self.vertical, self.angles["vertical"])
         self.set_angles()
     
-    def restore(self):
+    def init_ultrasonic_camera(self):
         self.set_angles(isBase=True)
         self.ultrasonic_rotate()
         time.sleep(0.1)
@@ -415,7 +397,7 @@ class Cruise(object):
 
 setup()
 
-buzzer = Buzzer()
+shanghaitan = Buzzer(d.shanghaitan)
 movement = Movement()
 infrared = Infrared()
 ultrasonic = Ultrasonic()
@@ -424,33 +406,20 @@ servo = Servo()
 cruise = Cruise()
 
 
-def run_command(command, record=True):
+def run_command(command):
     start = time.time()
     if command == "sing":
-        buzzer.sing()
+        shanghaitan.sing()
+
     elif command == "forword":
         movement.forword()
-        if record:
-            cruise.record(command)
     elif command == "backword":
         movement.backword()
-        if record:
-            cruise.record(command)
     elif command == "left":
         movement.left()
-        if record:
-            cruise.record(command)
     elif command == "right":
         movement.right()
-        if record:
-            cruise.record(command)
-    elif command == "stop":
-        movement.stop()
-        if record:
-            cruise.record(command)
-    elif command == "infrared":
-        state = infrared.state()
-        print(state)
+
     elif command == "ultrasonic":
         distance = ultrasonic.distance()
         print(distance)
@@ -458,24 +427,24 @@ def run_command(command, record=True):
         webcam.webcam_on()
     elif command == "webcam_off":
         webcam.webcam_off()
-    elif command == "restore":
-        servo.restore()
-    elif command == "servo0ccw":
+
+    elif command == "init_ultrasonic_camera":
+        servo.init_ultrasonic_camera()
+    elif command == "ultrasonic_ccw":
         servo.ultrasonic_rotate()
-    elif command == "servo1ccw":
-        servo.horizontal_rotate()
-    elif command == "servo2ccw":
-        servo.vertical_rotate()
-    elif command == "servo0cw":
+    elif command == "ultrasonic_cw":
         servo.ultrasonic_rotate(mode='cw')
-    elif command == "servo1cw":
+    elif command == "camera_hccw":
+        servo.horizontal_rotate()
+    elif command == "camera_vccw":
+        servo.vertical_rotate()
+    elif command == "camera_hcw":
         servo.horizontal_rotate(mode='cw')
-    elif command == "servo2cw":
+    elif command == "camera_vcw":
         servo.vertical_rotate(mode='cw')
     elif command == "camera_walk":
         servo.camera_walk()
-    elif command == "cruise":
-        cruise.auto(infrared.state, ultrasonic.distance, movement.forword, movement.backword, movement.left, movement.right, movement.stop)
+
     elif command == "servo3":
         servo.base_rotate()
     elif command == "servo4":
@@ -501,17 +470,13 @@ def run_command(command, record=True):
                 run_command(command, False)
                 time.sleep(0.5)
                 if ultrasonic.distance() < 10:
-                    stop()
+                    movement.stop()
                     break
             if ultrasonic.distance() < 10:
-                stop()
+                movement.stop()
                 break
-    elif command == "clear":
-        cruise.clear()
     elif command == "state":
         print(init_val)
-    else:
-        print("There is no such order")
 
     print("{}, {}".format(command, time.time()-start))
 

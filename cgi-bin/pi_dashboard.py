@@ -1,15 +1,7 @@
 #!/usr/bin/python3
 
 import os
-# import cgi, cgitb
 import json
-
-# cgitb.enable()
-# form = cgi.FieldStorage()
-# time = form.getvalue("time")
-# os.system("sudo date -s "+"time")
-
-# print("Content-type:text/html\n")
 
 def get_cpu_info():
     cpu_temp = os.popen("vcgencmd measure_temp").readline().replace("temp=","").replace("'C\n","")

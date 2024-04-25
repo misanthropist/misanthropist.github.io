@@ -10,30 +10,30 @@
 </head>
 <body>
     <div>
-        <a class="button" href="#" id="sing">Sing</a>
+        <span>蜂鸣器：</span>
+        <a class="button" href="#" id="shanghaitan">shanghaitan</a>
         <br>
+        <span>运动：</span>
         <a class="button" href="#" id="forword">Forword</a>
         <a class="button" href="#" id="backword">Backword</a>
         <a class="button" href="#" id="left">Left</a>
         <a class="button" href="#" id="right">Right</a>
         <a class="button" href="#" id="stop">Stop</a>
         <br>
-        <a class="button" href="#" id="infrared">infrared</a>
+        <span>避障监视：</span>
         <a class="button" href="#" id="ultrasonic">ultrasonic</a>
-        <a class="button" href="#" id="restore">restore</a>
-        <a class="button" href="#" id="servo0ccw">servo0ccw</a>
-        <a class="button" href="#" id="servo1ccw">servo1ccw</a>
-        <a class="button" href="#" id="servo2ccw">servo2ccw</a>
-        <a class="button" href="#" id="servo0cw">servo0cw</a>
-        <a class="button" href="#" id="servo1cw">servo1cw</a>
-        <a class="button" href="#" id="servo2cw">servo2cw</a>
         <a class="button" href="#" id="webcam_on">webcam_on</a>
         <a class="button" href="#" id="webcam_off">webcam_off</a>
+        <a class="button" href="#" id="init_ultrasonic_camera">init_ultrasonic_camera</a>
+        <a class="button" href="#" id="ultrasonic_ccw">ultrasonic_ccw</a>
+        <a class="button" href="#" id="ultrasonic_cw">ultrasonic_cw</a>
+        <a class="button" href="#" id="camera_hccw">camera_hccw</a>
+        <a class="button" href="#" id="camera_hcw">camera_hcw</a>
+        <a class="button" href="#" id="camera_vccw">camera_vccw</a>
+        <a class="button" href="#" id="camera_vcw">camera_vcw</a>
         <a class="button" href="#" id="camera_walk">camera_walk</a>
-        <a class="button" href="#" id="cruise">cruise</a>
-        <a class="button" href="#" id="recall">recall</a>
-        <a class="button" href="#" id="clear">clear</a>
         <br>
+        <span>机械臂：</span>
         <a class="button" href="#" id="servo3">servo3</a>
         <a class="button" href="#" id="servo4">servo4</a>
         <a class="button" href="#" id="servo5">servo5</a>
@@ -47,7 +47,7 @@
         <a class="button" href="#" id="state">state</a>
     </div>
     <img href="#" id="streamimage" src="http://localhost:8080/?action=stream" alt="webcam">
-    <p id="log">state: </p>
+    <pre id="log" style="max-height: 50rem; overflow-y: scroll;"></pre>
     <script src="/static/js/util.js"></script>
     <script src="/static/js/func.js"></script>
     <script src="/static/js/router.js"></script>
