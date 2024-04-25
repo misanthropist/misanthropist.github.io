@@ -167,7 +167,7 @@ class Ultrasonic(object):
 
 class Webcam(object):
     def __init__(self):
-       self.mjpg_streamer = '/home/doudou/temp/mjpg/mjpg_streamer -i "/home/doudou/temp/mjpg/input_uvc.so -d /dev/video0 -n -f 1 -r 160x120" -o "/home/doudou/temp/mjpg/output_http.so -w ~/temp/mjpg/www -p 8080" > /dev/null 2>&1 &'
+       self.mjpg_streamer = '/home/doudou/temp/mjpg/mjpg_streamer -i "/home/doudou/temp/mjpg/input_uvc.so -d /dev/video0 -n -f 1 -r 160x120" -o "/home/doudou/temp/mjpg/output_http.so -w /home/doudou/temp/mjpg/www -p 8080" > /dev/null 2>&1 &'
        self.close_mjpg = 'mjpg=`pidof mjpg_streamer` && kill -9 $mjpg'
     def webcam_on(self):
         os.system(self.mjpg_streamer)
@@ -272,7 +272,7 @@ class Servo(object):
         for i in range(30):
             self.horizontal_rotate(angle=5)
             time.sleep(0.5)
-        self.restore()
+        self.init_ultrasonic_camera()
 
     def init_arms(self):
         rotate(self.arm1, 80)
@@ -407,9 +407,8 @@ cruise = Cruise()
 
 def run_command(command):
     start = time.time()
-    if command == "sing":
+    if command == "shanghaitan":
         shanghaitan.sing()
-
     elif command == "forword":
         movement.forword()
     elif command == "backword":
