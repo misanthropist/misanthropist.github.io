@@ -399,7 +399,6 @@ setup()
 
 shanghaitan = Buzzer(d.shanghaitan)
 movement = Movement()
-infrared = Infrared()
 ultrasonic = Ultrasonic()
 webcam = Webcam()
 servo = Servo()
