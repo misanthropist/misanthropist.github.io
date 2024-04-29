@@ -42,7 +42,7 @@ function switch_vid(csv_arr, site_meta, item) {
 
 function start_vid(dp, site_meta, item) {
     var media_info = func.$("#media_info")[0],
-        item_type = item[item.length - 1];;
+        item_type = item[item.length - 1];
 
     document.title = item[1].slice(0, 12);
     if (item_type == "m3u8") {

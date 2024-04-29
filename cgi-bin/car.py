@@ -75,7 +75,7 @@ class Buzzer(object):
     def sing(self):
         self.Buzz.start(50)
         for i in range(len(self.freqs)):
-            self.Buzz.ChangeFrequency(self.song[i])
+            self.Buzz.ChangeFrequency(self.freqs[i])
             time.sleep(self.beats[i])
     def destory(self):
         self.Buzz.stop()
