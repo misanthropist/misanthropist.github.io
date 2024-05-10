@@ -1,18 +1,17 @@
 function switch_audio(csv_arr, site_meta, item) {
     var item_index = csv_arr.indexOf(item),
-        ele = func.$("#media")[0],
         au = document.createElement("audio");
-    ele.innerHTML = "";
-    ele.appendChild(au);
 
-    au.addEventListener("ended", function() {
-        if (item_index < site_meta.all_item_num-1) {
-            item_index = item_index + 1;
-        } else {
-            item_index = 0;
-        }
-        start_audio(au, site_meta, csv_arr[item_index]);
-    });
+    if (site_meta.type != "mixed") {
+        au.addEventListener("ended", function() {
+            if (item_index < site_meta.all_item_num-1) {
+                item_index = item_index + 1;
+            } else {
+                item_index = 0;
+            }
+            start_audio(au, site_meta, csv_arr[item_index]);
+        });
+    }
     start_audio(au, site_meta, csv_arr[item_index]);
 
 }
@@ -23,6 +22,8 @@ function start_audio(au, site_meta, item) {
         ele = func.$("#media")[0],
         item_type = item[item.length - 1];
 
+    ele.innerHTML = "";
+    ele.appendChild(au);
     document.title = item[1].slice(0, 12);
     if (item_type == "mp3") {
         var src_url = item[0]+'.mp3',
