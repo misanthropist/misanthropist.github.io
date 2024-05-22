@@ -14,7 +14,9 @@ function switch_epub(site_meta, item) {
 <a href="#epub_area" id="prev">上一页</a>
 <a href="#epub_area" id="next">下一页</a>
 </div>
-<div id="catalog"></div>`;
+<div id="catalog"></div>`,
+        media_info = func.$("#media_info")[0];
+
     eb.innerHTML = `
 <div id="epub_area">
 <a href="#epub_area"  id="left_page"></a>
@@ -27,11 +29,16 @@ function switch_epub(site_meta, item) {
     ele.appendChild(eb);
     func.css(ele, {width: "100%", paddingLeft: "0px"});
     
-    let cover = '<img src="/'+site_meta.disk+'/'+site_meta.name+'/'+item[0]+'/'+item[1]+'.jpg">';
-    func.$("#media_info")[0].innerHTML = cover+eb_info;
+    let cover = '<img src="'+item[0]+'/'+item[1]+'.jpg">';
+    media_info.innerHTML = cover+eb_info;
+    if (site_meta.type == "mixed") {
+        media_info.appendChild(gen_uncollect(item));
+    } else {
+        media_info.appendChild(gen_collect(item));
+    }
 
 
-    var book = ePub('/'+site_meta.disk+'/'+site_meta.name+'/'+item[0]+'/'+item[1]+".epub"),
+    var book = ePub(item[0]+'/'+item[1]+".epub"),
         rendition = book.renderTo("epub_area", {
             manager: "continuous",
             flow: "paginated",

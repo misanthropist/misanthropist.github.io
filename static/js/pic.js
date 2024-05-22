@@ -27,22 +27,56 @@ function switch_pic(csv_arr, site_meta, item) {
     img.setAttribute("src", img_url);
     img.setAttribute("data-src", "1")
     img.addEventListener('click', function() {
-        var num = parseInt(img.getAttribute("data-src"));
-        num = num + 1;
-        if (num <= pic_num) {
-            img.setAttribute("src", item[0]+'/'+item[0].split('/').pop()+'_'+num+'.jpg');
-            img.setAttribute("data-src", num);
-            
-            document.title = item[1].slice(0, 12)+num+"_"+pic_num;
-        } else if(num > pic_num && site_meta.type != "mixed") {
-            if (item_index < site_meta.all_item_num-1) {
-                item_index = item_index + 1;
-            } else {
-                item_index = 0;
-            }
-            switch_pic(csv_arr, site_meta, csv_arr[item_index]);
-        }
+        next_img(img, item, csv_arr, site_meta, pic_num, item_index, mode='click');
     })
     ele.innerHTML = "";
     ele.appendChild(img);
+    
+    var keyListener = function(e){
+        if ((e.keyCode || e.which) == 37) {
+            pre_img(img, item, csv_arr, site_meta, pic_num, item_index, mode='keyup');
+        }
+        if ((e.keyCode || e.which) == 39) {
+            next_img(img, item, csv_arr, site_meta, pic_num, item_index, mode='keyup');
+        }
+    };
+    document.addEventListener("keyup", keyListener, false);
+}
+
+
+    
+function next_img(img, item, csv_arr, site_meta, pic_num, item_index, mode) {
+    var num = parseInt(img.getAttribute("data-src"));
+    num = num + 1;
+    if (num <= pic_num) {
+        img.setAttribute("src", item[0]+'/'+item[0].split('/').pop()+'_'+num+'.jpg');
+        img.setAttribute("data-src", num);
+        
+        document.title = item[1].slice(0, 12)+num+"_"+pic_num;
+    } else if(num > pic_num && site_meta.type != "mixed" && mode != 'keyup') {
+        if (item_index < site_meta.all_item_num-1) {
+            item_index = item_index + 1;
+        } else {
+            item_index = 0;
+        }
+        switch_pic(csv_arr, site_meta, csv_arr[item_index]);
+    }
+}
+
+function pre_img(img, item, csv_arr, site_meta, pic_num, item_index, mode) {
+    var num = parseInt(img.getAttribute("data-src"));
+    num = num - 1;
+    if (num > 0) {
+        img.setAttribute("src", item[0]+'/'+item[0].split('/').pop()+'_'+num+'.jpg');
+        img.setAttribute("data-src", num);
+        
+        document.title = item[1].slice(0, 12)+num+"_"+pic_num;
+    } else if(num == 0 && site_meta.type != "mixed" && mode != 'keyup') {
+        if (item_index >= 0) {
+            item_index = item_index - 1;
+        } else {
+            item_index = site_meta.all_item_num-1;
+        }
+        switch_pic(csv_arr, site_meta, csv_arr[item_index]);
+    }
 }

@@ -5,11 +5,11 @@ function switch_pdf(site_meta, item) {
         next = document.createElement("a"),
         pdf_div = document.createElement("div"),
         media = func.$("#media")[0],
-        loadingTask = pdfjsLib.getDocument("/a/"+site_meta.name+"/"+item[0]+".pdf"),
+        loadingTask = pdfjsLib.getDocument(item[0]+".pdf"),
         pageRendering = true,
         page_num = 1,
         max_width = media.clientWidth,
-        info = func.$("#media_info")[0];
+        media_info = func.$("#media_info")[0];
     media.innerHTML = "";
     func.css(media, {width: "100%", paddingLeft: "0px"});
     prev.setAttribute("class", "button");
@@ -46,9 +46,14 @@ function switch_pdf(site_meta, item) {
     display_pdf(loadingTask, canvas, page_num);
     
     pdf_div.appendChild(canvas);
-    info.innerHTML = "<h2>"+item[1]+"</h2>";
-    info.appendChild(prev);
-    info.appendChild(next);
+    media_info.innerHTML = "<h2>"+item[1]+"</h2>";
+    media_info.appendChild(prev);
+    media_info.appendChild(next);
+    if (site_meta.type == "mixed") {
+        media_info.appendChild(gen_uncollect(item));
+    } else {
+        media_info.appendChild(gen_collect(item));
+    }
     media.appendChild(pdf_div);
 
 }
